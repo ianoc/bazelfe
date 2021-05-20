@@ -182,7 +182,10 @@ where
         .recent_files
         .iter()
         .map(|(pb, when)| {
-            let elapsed = now_time.duration_since(*when);
+            let mut elapsed = now_time.duration_since(*when);
+            elapsed = elapsed
+                .checked_sub(Duration::from_nanos(elapsed.subsec_nanos()))
+                .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
                 Span::styled(format_duration(elapsed).to_string(), time_style),
                 Span::raw(pb.to_string_lossy()),

@@ -6,7 +6,7 @@ use tui::{
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     symbols,
-    text::{Span, Spans},
+    text::{Span, Spans, Text},
     widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle},
     widgets::{
         Axis, BarChart, Block, Borders, Chart, Dataset, GraphType, List, ListItem, Paragraph, Row,
@@ -245,7 +245,7 @@ where
         .iter()
         .map(|e| Spans(CtrlChars::parse(e.to_string()).into_text()))
         .collect();
-    let paragraph = Paragraph::new(text)
+    let paragraph = Paragraph::new(Text { lines: text })
         .block(Block::default().title("Bazel logs").borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .alignment(Alignment::Left)

@@ -5,7 +5,7 @@ mod progress_tab_updater;
 mod ui;
 mod util;
 
-use std::sync::Arc;
+use std::{path::PathBuf, sync::Arc};
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{
@@ -44,6 +44,7 @@ pub async fn maybe_auto_test_mode<
             Err(AutoTestActionError::NoDaemon)
         }?;
         let (progress_pump_sender, progress_receiver) = flume::unbounded::<String>();
+        let (changed_file_tx, changed_file_rx) = flume::unbounded::<PathBuf>();
 
         let progress_tab_updater =
             progress_tab_updater::ProgressTabUpdater::new(progress_pump_sender);
@@ -58,7 +59,7 @@ pub async fn maybe_auto_test_mode<
         let max_distance = 3;
         let mut dirty_files: Vec<FileStatus> = Vec::default();
 
-        let main_running = command_line_driver::main(progress_receiver)?;
+        let main_running = command_line_driver::main(progress_receiver, changed_file_rx)?;
         'outer_loop: loop {
             match main_running.try_recv() {
                 Ok(inner_result) => {
@@ -78,6 +79,9 @@ pub async fn maybe_auto_test_mode<
                 .wait_for_files(tarpc::context::current(), invalid_since_when)
                 .await?;
             if !recent_changed_files.is_empty() {
+                for f in recent_changed_files.iter() {
+                    let _ = changed_file_tx.send_async(f.0.clone()).await;
+                }
                 dirty_files.extend(recent_changed_files);
 
                 'inner_loop: loop {

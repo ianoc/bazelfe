@@ -1,3 +1,9 @@
+use std::{
+    collections::HashMap,
+    path::PathBuf,
+    time::{Duration, Instant},
+};
+
 use super::util::{RandomSignal, SinSignal, StatefulList, TabsState};
 
 const TASKS: [&str; 24] = [
@@ -123,6 +129,8 @@ pub struct App<'a> {
     pub tasks: StatefulList<&'a str>,
     pub action_logs: StatefulList<(&'a str, &'a str, u16)>,
     pub progress_receiver: flume::Receiver<String>,
+    pub file_change_receiver: flume::Receiver<PathBuf>,
+    pub recent_files: HashMap<PathBuf, Instant>,
     pub progress_logs: Vec<String>,
     pub logs: StatefulList<(&'a str, &'a str)>,
     pub signals: Signals,
@@ -138,6 +146,7 @@ impl<'a> App<'a> {
         title: &'a str,
         enhanced_graphics: bool,
         progress_receiver: flume::Receiver<String>,
+        file_change_receiver: flume::Receiver<PathBuf>,
     ) -> App<'a> {
         let mut rand_signal = RandomSignal::new(0, 100);
         let sparkline_points = rand_signal.by_ref().take(300).collect();
@@ -165,6 +174,8 @@ impl<'a> App<'a> {
                     .collect(),
             ),
             progress_receiver,
+            file_change_receiver,
+            recent_files: HashMap::default(),
             progress_logs: Vec::default(),
             logs: StatefulList::with_items(LOGS.to_vec()),
             signals: Signals {
@@ -251,6 +262,21 @@ impl<'a> App<'a> {
         self.sparkline.on_tick();
         self.signals.on_tick();
 
+        let now_time = Instant::now();
+        while let Ok(r) = self.file_change_receiver.try_recv() {
+            self.recent_files.insert(r, now_time);
+        }
+
+        // 5 minutes
+        let len = self.recent_files.len();
+        let max_time = if len > 10 {
+            Duration::from_secs(90)
+        } else {
+            Duration::from_secs(300)
+        };
+        self.recent_files
+            .retain(|_, i| now_time.duration_since(*i) < max_time);
+
         let (a, b, _) = self.action_logs.items.pop().unwrap();
         self.action_logs
             .items
@@ -267,6 +293,7 @@ impl<'a> App<'a> {
             let too_big = self.progress_logs.len() - 20000;
             self.progress_logs.drain(0..too_big);
         }
+
         let event = self.barchart.pop().unwrap();
         self.barchart.insert(0, event);
 

@@ -167,38 +167,27 @@ where
         .style(Style::default().fg(Color::Yellow))
         .data(&data)];
 
-    let chart = Chart::new(datasets)
-        .block(
-            Block::default().title(Span::styled(
-                "Pending Actions",
-                Style::default()
-                    .fg(Color::Cyan)
-                    .add_modifier(Modifier::BOLD),
-            )),
-        )
-        .x_axis(
-            Axis::default()
-                .title(Span::styled("X Axis", Style::default().fg(Color::Red)))
-                .style(Style::default().fg(Color::White))
-                .bounds([0.0, data.len() as f64])
-                .labels(
-                    ["0.0", "5.0", "10.0"]
-                        .iter()
-                        .cloned()
-                        .map(Span::from)
-                        .collect(),
-                ),
-        )
-        .y_axis(
-            Axis::default()
-                .style(Style::default().fg(Color::Gray))
-                .bounds([0.0, 20.0])
-                .labels(vec![
-                    Span::styled("0", Style::default().add_modifier(Modifier::BOLD)),
-                    Span::styled("20", Style::default().add_modifier(Modifier::BOLD)),
-                ]),
-        );
-    f.render_widget(chart, chunks[2]);
+    draw_recent_file_changes(f, app, chunks[2]);
+}
+
+fn draw_recent_file_changes<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
+where
+    B: Backend,
+{
+    let logs: Vec<ListItem> = app
+        .recent_files
+        .keys()
+        .map(|pb| {
+            let content = vec![Spans::from(vec![Span::raw(pb.to_string_lossy())])];
+            ListItem::new(content)
+        })
+        .collect();
+    let logs = List::new(logs).block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Recently changed files"),
+    );
+    f.render_stateful_widget(logs, area, &mut app.action_logs.state);
 }
 
 fn draw_text<B>(f: &mut Frame<B>, app: &mut App, area: Rect)

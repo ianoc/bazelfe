@@ -3,13 +3,14 @@ use std::time::Duration;
 
 use tui::{
     backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect, Wrap},
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
     widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle},
     widgets::{
-        Axis, BarChart, Block, Borders, Chart, Dataset, GraphType, List, ListItem, Row, Table, Tabs,
+        Axis, BarChart, Block, Borders, Chart, Dataset, GraphType, List, ListItem, Paragraph, Row,
+        Table, Tabs,
     },
     Frame,
 };
@@ -267,5 +268,20 @@ where
             .borders(Borders::ALL)
             .title("Completion events"),
     );
+
+    let text = vec![
+        Spans::from(vec![
+            Span::raw("First"),
+            Span::styled("line", Style::default().add_modifier(Modifier::ITALIC)),
+            Span::raw("."),
+        ]),
+        Spans::from(Span::styled("Second line", Style::default().fg(Color::Red))),
+    ];
+    Paragraph::new(text)
+        .block(Block::default().title("Paragraph").borders(Borders::ALL))
+        .style(Style::default().fg(Color::White).bg(Color::Black))
+        .alignment(Alignment::Center)
+        .wrap(Wrap { trim: true });
+
     f.render_stateful_widget(logs, area, &mut app.action_logs.state);
 }

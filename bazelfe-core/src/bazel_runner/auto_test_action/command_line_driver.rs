@@ -51,7 +51,7 @@ pub fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    let mut app = App::new("Crossterm Demo", true);
+    let mut app = App::new("BazelFE AutoTest Dashboard", true);
 
     terminal.clear()?;
 

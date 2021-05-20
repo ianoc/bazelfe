@@ -248,8 +248,8 @@ where
     let paragraph = Paragraph::new(text)
         .block(Block::default().title("Bazel logs").borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))
-        .alignment(Alignment::Center)
-        .wrap(Wrap { trim: true });
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: false });
 
     f.render_widget(paragraph, area);
 }

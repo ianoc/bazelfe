@@ -120,6 +120,7 @@ dependencies = [
  "flume",
  "fork",
  "futures",
+ "humantime 2.1.0",
  "lazy_static",
  "libc",
  "log",

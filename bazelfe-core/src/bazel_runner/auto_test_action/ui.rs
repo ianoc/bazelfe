@@ -1,5 +1,5 @@
 use super::{app::App, ctrl_char::CtrlChars};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use tui::{
     backend::Backend,
@@ -174,11 +174,18 @@ fn draw_recent_file_changes<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
+    use humantime::format_duration;
+
+    let now_time = Instant::now();
     let logs: Vec<ListItem> = app
         .recent_files
-        .keys()
-        .map(|pb| {
-            let content = vec![Spans::from(vec![Span::raw(pb.to_string_lossy())])];
+        .iter()
+        .map(|(pb, when)| {
+            let elapsed = now_time.duration_since(*when);
+            let content = vec![Spans::from(vec![
+                Span::styled(format_duration(elapsed), Style::default().fg(Color::Blue)),
+                Span::raw(pb.to_string_lossy()),
+            ])];
             ListItem::new(content)
         })
         .collect();

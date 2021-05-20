@@ -187,7 +187,10 @@ where
                 .checked_sub(Duration::from_nanos(elapsed.subsec_nanos() as u64))
                 .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
-                Span::styled(format!("{:<20}", format_duration(elapsed)), time_style),
+                Span::styled(
+                    format!("{:<20}", format_duration(elapsed).to_string()),
+                    time_style,
+                ),
                 Span::raw(pb.to_string_lossy()),
             ])];
             ListItem::new(content)

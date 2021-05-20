@@ -184,7 +184,7 @@ where
         .map(|(pb, when)| {
             let mut elapsed = now_time.duration_since(*when);
             elapsed = elapsed
-                .checked_sub(Duration::from_nanos(elapsed.subsec_nanos()))
+                .checked_sub(Duration::from_nanos(elapsed.subsec_nanos() as u64))
                 .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
                 Span::styled(format_duration(elapsed).to_string(), time_style),

@@ -92,6 +92,7 @@ trim-margin = "0.1.0"
 dashmap = "4.0.2"
 tui = {version = "0.15.0", default_features = false, features = ["crossterm"]}
 crossterm = "0.19.0"
+muncher = "0.6.1"
 
 [build-dependencies]
 vergen = "5.1.5"

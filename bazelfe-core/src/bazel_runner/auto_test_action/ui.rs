@@ -1,4 +1,4 @@
-use super::app::App;
+use super::{app::App, ctrl_char::CtrlChars};
 use std::time::Duration;
 
 use tui::{
@@ -243,13 +243,7 @@ where
     let text: Vec<Spans> = app
         .progress_logs
         .iter()
-        .map(|e| {
-            Spans::from(vec![
-                Span::raw(e),
-                Span::styled("line", Style::default().add_modifier(Modifier::ITALIC)),
-                Span::raw("."),
-            ])
-        })
+        .map(|e| Spans(CtrlChars::parse(e.to_string()).into_text()))
         .collect();
     let paragraph = Paragraph::new(text)
         .block(Block::default().title("Bazel logs").borders(Borders::ALL))

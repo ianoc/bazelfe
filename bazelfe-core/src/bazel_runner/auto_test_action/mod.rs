@@ -1,5 +1,6 @@
 mod app;
 mod command_line_driver;
+mod ctrl_char;
 mod progress_tab_updater;
 mod ui;
 mod util;

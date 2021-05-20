@@ -42,8 +42,10 @@ pub async fn maybe_auto_test_mode<
         } else {
             Err(AutoTestActionError::NoDaemon)
         }?;
+        let (progress_pump_sender, progress_receiver) = flume::unbounded::<String>();
 
-        let progress_tab_updater = progress_tab_updater::ProgressTabUpdater {};
+        let progress_tab_updater =
+            progress_tab_updater::ProgressTabUpdater::new(progress_pump_sender);
 
         configured_bazel_runner
             .configured_bazel
@@ -55,8 +57,22 @@ pub async fn maybe_auto_test_mode<
         let max_distance = 3;
         let mut dirty_files: Vec<FileStatus> = Vec::default();
 
-        command_line_driver::main()?;
+        let main_running = command_line_driver::main(progress_receiver)?;
         'outer_loop: loop {
+            match main_running.try_recv() {
+                Ok(inner_result) => {
+                    if let Err(e) = inner_result {
+                        eprintln!("UX system failed with: {}", e);
+                        break 'outer_loop;
+                    }
+                }
+                Err(e) => match e {
+                    flume::TryRecvError::Empty => (),
+                    flume::TryRecvError::Disconnected => {
+                        break 'outer_loop;
+                    }
+                },
+            }
             let recent_changed_files: Vec<FileStatus> = daemon_cli
                 .wait_for_files(tarpc::context::current(), invalid_since_when)
                 .await?;

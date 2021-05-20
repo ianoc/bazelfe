@@ -122,6 +122,7 @@ pub struct App<'a> {
     pub sparkline: Signal<RandomSignal>,
     pub tasks: StatefulList<&'a str>,
     pub action_logs: StatefulList<(&'a str, &'a str, u16)>,
+    pub progress_receiver: flume::Receiver<String>,
     pub logs: StatefulList<(&'a str, &'a str)>,
     pub signals: Signals,
     pub barchart: Vec<(&'a str, u64)>,
@@ -132,7 +133,11 @@ pub struct App<'a> {
 }
 
 impl<'a> App<'a> {
-    pub fn new(title: &'a str, enhanced_graphics: bool) -> App<'a> {
+    pub fn new(
+        title: &'a str,
+        enhanced_graphics: bool,
+        progress_receiver: flume::Receiver<String>,
+    ) -> App<'a> {
         let mut rand_signal = RandomSignal::new(0, 100);
         let sparkline_points = rand_signal.by_ref().take(300).collect();
         let mut sin_signal = SinSignal::new(0.2, 3.0, 18.0);
@@ -158,6 +163,7 @@ impl<'a> App<'a> {
                     .chain(ACTION_LOGS.iter().map(|(k, v)| (k.clone(), v.clone(), 0)))
                     .collect(),
             ),
+            progress_receiver,
             logs: StatefulList::with_items(LOGS.to_vec()),
             signals: Signals {
                 sin1: Signal {

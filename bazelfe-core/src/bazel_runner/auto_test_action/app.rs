@@ -123,6 +123,7 @@ pub struct App<'a> {
     pub tasks: StatefulList<&'a str>,
     pub action_logs: StatefulList<(&'a str, &'a str, u16)>,
     pub progress_receiver: flume::Receiver<String>,
+    pub progress_logs: Vec<String>,
     pub logs: StatefulList<(&'a str, &'a str)>,
     pub signals: Signals,
     pub barchart: Vec<(&'a str, u64)>,
@@ -164,6 +165,7 @@ impl<'a> App<'a> {
                     .collect(),
             ),
             progress_receiver,
+            progress_logs: Vec::default(),
             logs: StatefulList::with_items(LOGS.to_vec()),
             signals: Signals {
                 sin1: Signal {
@@ -257,6 +259,13 @@ impl<'a> App<'a> {
         let log = self.logs.items.pop().unwrap();
         self.logs.items.insert(0, log);
 
+        while let Ok(r) = self.progress_receiver.try_recv() {
+            self.progress_logs.push(r);
+        }
+        if self.progress_logs.len() > 20000 {
+            let too_big = self.progress_logs.len() - 20000;
+            self.progress_logs.drain(0..too_big);
+        }
         let event = self.barchart.pop().unwrap();
         self.barchart.insert(0, event);
 

@@ -10,7 +10,7 @@ use tui::{
     widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle},
     widgets::{
         Axis, BarChart, Block, Borders, Chart, Dataset, GraphType, List, ListItem, Paragraph, Row,
-        Table, Tabs, Wrap,
+        Table, Tabs, Text, Wrap,
     },
     Frame,
 };
@@ -240,14 +240,7 @@ fn draw_second_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
-    let text = vec![
-        Spans::from(vec![
-            Span::raw("First"),
-            Span::styled("line", Style::default().add_modifier(Modifier::ITALIC)),
-            Span::raw("."),
-        ]),
-        Spans::from(Span::styled("Second line", Style::default().fg(Color::Red))),
-    ];
+    let text = vec![Text::raw(&app.progress_logs)];
     let paragraph = Paragraph::new(text)
         .block(Block::default().title("Bazel logs").borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))

@@ -260,7 +260,8 @@ impl<'a> App<'a> {
         self.logs.items.insert(0, log);
 
         while let Ok(r) = self.progress_receiver.try_recv() {
-            self.progress_logs.push(r);
+            r.lines()
+                .for_each(|e| self.progress_logs.push(e.to_string()));
         }
         if self.progress_logs.len() > 20000 {
             let too_big = self.progress_logs.len() - 20000;

@@ -212,7 +212,7 @@ where
 
     let success_span = Span::styled(
         format!("{:<11}", "SUCCESS"),
-        Style::default().fg(Color::Greeb),
+        Style::default().fg(Color::Green),
     );
     let failed_span = Span::styled(format!("{:<11}", "FAILED"), Style::default().fg(Color::Red));
     let logs: Vec<ListItem> = app

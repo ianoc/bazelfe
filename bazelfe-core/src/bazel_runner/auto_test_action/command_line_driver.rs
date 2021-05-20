@@ -1,46 +1,81 @@
-use super::event::{Config, Event, Events};
 use super::{app::App, ui};
-use std::{error::Error, io, time::Duration};
-use termion::{event::Key, input::MouseTerminal, raw::IntoRawMode, screen::AlternateScreen};
-use tui::{backend::TermionBackend, Terminal};
+use crossterm::{
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode},
+    execute,
+    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+};
+use std::{
+    error::Error,
+    io::stdout,
+    sync::mpsc,
+    thread,
+    time::{Duration, Instant},
+};
+use tui::{backend::CrosstermBackend, Terminal};
+
+enum Event<I> {
+    Input(I),
+    Tick,
+}
 
 pub fn main() -> Result<(), Box<dyn Error>> {
-    let events = Events::with_config(Config {
-        tick_rate: Duration::from_millis(250),
-        ..Config::default()
-    });
+    enable_raw_mode()?;
 
-    let stdout = io::stdout().into_raw_mode()?;
-    let stdout = MouseTerminal::from(stdout);
-    let stdout = AlternateScreen::from(stdout);
-    let backend = TermionBackend::new(stdout);
+    let mut stdout = stdout();
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
+
+    let backend = CrosstermBackend::new(stdout);
+
     let mut terminal = Terminal::new(backend)?;
 
-    let mut app = App::new("Termion demo", true);
+    // Setup input handling
+    let (tx, rx) = mpsc::channel();
+
+    let tick_rate = Duration::from_millis(250);
+    thread::spawn(move || {
+        let mut last_tick = Instant::now();
+        loop {
+            // poll for tick rate duration, if no events, sent tick event.
+            let timeout = tick_rate
+                .checked_sub(last_tick.elapsed())
+                .unwrap_or_else(|| Duration::from_secs(0));
+            if event::poll(timeout).unwrap() {
+                if let CEvent::Key(key) = event::read().unwrap() {
+                    tx.send(Event::Input(key)).unwrap();
+                }
+            }
+            if last_tick.elapsed() >= tick_rate {
+                tx.send(Event::Tick).unwrap();
+                last_tick = Instant::now();
+            }
+        }
+    });
+
+    let mut app = App::new("Crossterm Demo", true);
+
+    terminal.clear()?;
+
     loop {
         terminal.draw(|f| ui::draw(f, &mut app))?;
-
-        match events.next()? {
-            Event::Input(key) => match key {
-                Key::Char(c) => {
-                    app.on_key(c);
+        match rx.recv()? {
+            Event::Input(event) => match event.code {
+                KeyCode::Char('q') => {
+                    disable_raw_mode()?;
+                    execute!(
+                        terminal.backend_mut(),
+                        LeaveAlternateScreen,
+                        DisableMouseCapture
+                    )?;
+                    terminal.show_cursor()?;
+                    break;
                 }
-                Key::Up => {
-                    app.on_up();
-                }
-                Key::Down => {
-                    app.on_down();
-                }
-                Key::Left => {
-                    app.on_left();
-                }
-                Key::Right => {
-                    app.on_right();
-                }
-                Key::BackTab => {
-                    app.on_right();
-                }
-
+                KeyCode::Char(c) => app.on_key(c),
+                KeyCode::Left => app.on_left(),
+                KeyCode::Up => app.on_up(),
+                KeyCode::Right => app.on_right(),
+                KeyCode::Tab => app.on_right(),
+                KeyCode::BackTab => app.on_left(),
+                KeyCode::Down => app.on_down(),
                 _ => {}
             },
             Event::Tick => {

@@ -1,6 +1,5 @@
 mod app;
 mod command_line_driver;
-mod event;
 mod ui;
 mod util;
 

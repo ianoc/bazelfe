@@ -188,6 +188,7 @@ where
                 .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
                 Span::styled(format_duration(elapsed).to_string(), time_style),
+                Span::raw("    "),
                 Span::raw(pb.to_string_lossy()),
             ])];
             ListItem::new(content)
@@ -213,17 +214,24 @@ where
         .action_logs
         .items
         .iter()
-        .map(|&(level, evt, run_time)| {
-            let s = match level {
-                "ACTION" => action_style,
-                "TARGET" => target_style,
-                "TEST" => test_style,
+        .map(|action_entry| {
+            let s = match action_entry.complete_type {
+                super::CompleteKind::Action => action_style,
+                super::CompleteKind::Target => target_style,
+                super::CompleteKind::Test => test_style,
                 _ => unknown_style,
             };
+
+            let lvl_str = match action_entry.complete_type {
+                super::CompleteKind::Action => "ACTION",
+                super::CompleteKind::Target => "TARGET",
+                super::CompleteKind::Test => "TEST",
+            };
+
             let content = vec![Spans::from(vec![
-                Span::styled(format!("{:<9}", level), s),
-                Span::raw(evt),
-                Span::raw(format!(" in {:?}", Duration::from_secs(run_time.into()))),
+                Span::styled(format!("{:<9}", lvl_str), s),
+                Span::raw(action_entry.label.clone()),
+                Span::raw(format!(" in {:?}", action_entry.duration)),
             ])];
             ListItem::new(content)
         })

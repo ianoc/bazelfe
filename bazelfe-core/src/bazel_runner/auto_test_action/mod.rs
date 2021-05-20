@@ -5,7 +5,11 @@ mod progress_tab_updater;
 mod ui;
 mod util;
 
-use std::{path::PathBuf, sync::Arc};
+use std::{
+    path::PathBuf,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{
@@ -23,6 +27,18 @@ pub enum AutoTestActionError {
 
 use super::configured_bazel_runner::ConfiguredBazelRunner;
 
+pub enum CompleteKind {
+    Action,
+    Target,
+    Test,
+}
+
+pub struct ActionTargetStateScrollEntry {
+    pub complete_type: CompleteKind,
+    pub success: bool,
+    pub label: String,
+    pub duration: Duration,
+}
 pub async fn maybe_auto_test_mode<
     T: buildozer_driver::Buildozer,
     U: crate::hydrated_stream_processors::process_bazel_failures::CommandLineRunner,
@@ -45,9 +61,10 @@ pub async fn maybe_auto_test_mode<
         }?;
         let (progress_pump_sender, progress_receiver) = flume::unbounded::<String>();
         let (changed_file_tx, changed_file_rx) = flume::unbounded::<PathBuf>();
+        let (action_event_tx, action_event_rx) = flume::unbounded::<ActionTargetStateScrollEntry>();
 
         let progress_tab_updater =
-            progress_tab_updater::ProgressTabUpdater::new(progress_pump_sender);
+            progress_tab_updater::ProgressTabUpdater::new(progress_pump_sender, action_event_tx);
 
         configured_bazel_runner
             .configured_bazel
@@ -59,7 +76,8 @@ pub async fn maybe_auto_test_mode<
         let max_distance = 3;
         let mut dirty_files: Vec<FileStatus> = Vec::default();
 
-        let main_running = command_line_driver::main(progress_receiver, changed_file_rx)?;
+        let main_running =
+            command_line_driver::main(progress_receiver, changed_file_rx, action_event_rx)?;
         'outer_loop: loop {
             match main_running.try_recv() {
                 Ok(inner_result) => {

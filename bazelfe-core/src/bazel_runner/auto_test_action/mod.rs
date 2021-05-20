@@ -90,7 +90,7 @@ pub async fn maybe_auto_test_mode<
                                 .remaining_args
                                 .join(", ")
                         );
-                        let result = configured_bazel_runner.run_command_line().await?;
+                        let result = configured_bazel_runner.run_command_line(false).await?;
                         if result.final_exit_code != 0 {
                             continue 'outer_loop;
                         }

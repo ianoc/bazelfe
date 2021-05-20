@@ -47,12 +47,14 @@ impl ConfiguredBazel {
     async fn spawn_bazel_attempt(
         &self,
         bazel_command_line: &ParsedCommandLine,
+        pipe_output: bool,
     ) -> Result<(ProcessorActivity, bazel_runner::ExecuteResult), Box<dyn std::error::Error>> {
         spawn_bazel_attempt(
             &self.sender_arc,
             &self.aes,
             self.bes_port,
             bazel_command_line,
+            pipe_output,
         )
         .await
     }
@@ -65,6 +67,7 @@ async fn spawn_bazel_attempt(
     aes: &EventStreamListener,
     bes_port: u16,
     bazel_command_line: &ParsedCommandLine,
+    pipe_output: bool,
 ) -> Result<(ProcessorActivity, bazel_runner::ExecuteResult), Box<dyn std::error::Error>> {
     let (tx, rx) = async_channel::unbounded();
     let _ = {
@@ -121,7 +124,9 @@ async fn spawn_bazel_attempt(
         });
     });
 
-    let res = bazel_runner::execute_bazel(&bazel_command_line, bes_port).await?;
+    let res =
+        bazel_runner::execute_bazel_output_control(&bazel_command_line, bes_port, pipe_output)
+            .await?;
 
     let _ = {
         let mut locked = sender_arc.lock().await;
@@ -177,7 +182,10 @@ impl<
         }
     }
 
-    pub async fn run_command_line(&self) -> Result<RunCompleteState, Box<dyn std::error::Error>> {
+    pub async fn run_command_line(
+        &self,
+        pipe_output: bool,
+    ) -> Result<RunCompleteState, Box<dyn std::error::Error>> {
         let mut attempts: u16 = 0;
 
         let mut running_total = ProcessorActivity::default();
@@ -190,7 +198,7 @@ impl<
 
             let (processor_activity, bazel_result) = self
                 .configured_bazel
-                .spawn_bazel_attempt(&self.bazel_command_line)
+                .spawn_bazel_attempt(&self.bazel_command_line, pipe_output)
                 .await?;
             let actions_taken = processor_activity.actions_taken;
             total_actions_taken += actions_taken;
@@ -219,7 +227,7 @@ impl<
         if super::auto_test_action::maybe_auto_test_mode(&mut self).await? {
             return Ok(0);
         };
-        let res_data = self.run_command_line().await?;
+        let res_data = self.run_command_line(true).await?;
         let disable_action_stories_on_success = self.config.disable_action_stories_on_success;
 
         // we should be very quiet if the build is successful/we added nothing.

@@ -277,11 +277,11 @@ where
         ]),
         Spans::from(Span::styled("Second line", Style::default().fg(Color::Red))),
     ];
-    Paragraph::new(text)
+    let paragraph = Paragraph::new(text)
         .block(Block::default().title("Paragraph").borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .alignment(Alignment::Center)
         .wrap(Wrap { trim: true });
 
-    f.render_stateful_widget(logs, area, &mut app.action_logs.state);
+    f.render_widget(paragraph, area);
 }

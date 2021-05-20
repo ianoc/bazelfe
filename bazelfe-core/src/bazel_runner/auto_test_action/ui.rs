@@ -176,6 +176,7 @@ where
 {
     use humantime::format_duration;
 
+    let time_style = Style::default().fg(Color::Blue);
     let now_time = Instant::now();
     let logs: Vec<ListItem> = app
         .recent_files
@@ -183,7 +184,7 @@ where
         .map(|(pb, when)| {
             let elapsed = now_time.duration_since(*when);
             let content = vec![Spans::from(vec![
-                Span::styled(format_duration(elapsed), Style::default().fg(Color::Blue)),
+                Span::styled(format_duration(elapsed).to_string(), time_style),
                 Span::raw(pb.to_string_lossy()),
             ])];
             ListItem::new(content)

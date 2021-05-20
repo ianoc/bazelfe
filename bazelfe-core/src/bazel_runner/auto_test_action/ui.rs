@@ -187,8 +187,7 @@ where
                 .checked_sub(Duration::from_nanos(elapsed.subsec_nanos() as u64))
                 .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
-                Span::styled(format_duration(elapsed).to_string(), time_style),
-                Span::raw("    "),
+                Span::styled(format!("{:<20}", format_duration(elapsed)), time_style),
                 Span::raw(pb.to_string_lossy()),
             ])];
             ListItem::new(content)
@@ -211,8 +210,11 @@ where
     let test_style = Style::default().fg(Color::Magenta);
     let unknown_style = Style::default().fg(Color::Red);
 
-    let success_span = Span::styled("SUCCESS", Style::default().fg(Color::Red));
-    let failed_span = Span::styled("SUCCESS", Style::default().fg(Color::Red));
+    let success_span = Span::styled(
+        format!("{:<11}", "SUCCESS"),
+        Style::default().fg(Color::Greeb),
+    );
+    let failed_span = Span::styled(format!("{:<11}", "FAILED"), Style::default().fg(Color::Red));
     let logs: Vec<ListItem> = app
         .action_logs
         .items

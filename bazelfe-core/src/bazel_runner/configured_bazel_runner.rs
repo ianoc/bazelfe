@@ -25,7 +25,7 @@ use super::processor_activity::*;
 pub struct ConfiguredBazel {
     sender_arc:
         Arc<Mutex<Option<async_channel::Sender<BuildEventAction<bazel_event::BazelBuildEvent>>>>>,
-    aes: EventStreamListener,
+    pub aes: EventStreamListener,
     bes_port: u16,
 }
 
@@ -34,12 +34,12 @@ impl ConfiguredBazel {
         sender_arc: &Arc<
             Mutex<Option<async_channel::Sender<BuildEventAction<bazel_event::BazelBuildEvent>>>>,
         >,
-        aes: &EventStreamListener,
+        aes: EventStreamListener,
         bes_port: u16,
     ) -> Self {
         Self {
             sender_arc: sender_arc.clone(),
-            aes: aes.clone(),
+            aes: aes,
             bes_port,
         }
     }
@@ -143,10 +143,9 @@ pub struct ConfiguredBazelRunner<
     U: crate::hydrated_stream_processors::process_bazel_failures::CommandLineRunner,
 > {
     config: Arc<Config>,
-    configured_bazel: ConfiguredBazel,
+    pub configured_bazel: ConfiguredBazel,
     pub runner_daemon: Option<crate::bazel_runner_daemon::daemon_service::RunnerDaemonClient>,
     _index_table: crate::index_table::IndexTable,
-    _aes: EventStreamListener,
     pub bazel_command_line: ParsedCommandLine,
     process_build_failures: Arc<ProcessBazelFailures<T, U>>,
 }
@@ -167,7 +166,6 @@ impl<
         configured_bazel: ConfiguredBazel,
         runner_daemon: Option<crate::bazel_runner_daemon::daemon_service::RunnerDaemonClient>,
         index_table: crate::index_table::IndexTable,
-        aes: EventStreamListener,
         bazel_command_line: ParsedCommandLine,
         process_build_failures: Arc<ProcessBazelFailures<T, U>>,
     ) -> Self {
@@ -176,7 +174,6 @@ impl<
             configured_bazel,
             runner_daemon,
             _index_table: index_table,
-            _aes: aes,
             bazel_command_line,
             process_build_failures,
         }

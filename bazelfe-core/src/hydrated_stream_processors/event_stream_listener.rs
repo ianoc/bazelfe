@@ -2,9 +2,9 @@ use std::sync::Arc;
 
 use crate::{build_events::hydrated_stream, hydrated_stream_processors::BuildEventResponse};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct EventStreamListener {
-    processors: Arc<Vec<Arc<dyn crate::hydrated_stream_processors::BazelEventHandler>>>,
+    processors: Vec<Arc<dyn crate::hydrated_stream_processors::BazelEventHandler>>,
 }
 
 impl EventStreamListener {
@@ -12,8 +12,15 @@ impl EventStreamListener {
         processors: Vec<Arc<dyn crate::hydrated_stream_processors::BazelEventHandler>>,
     ) -> Self {
         Self {
-            processors: Arc::new(processors),
+            processors: processors,
         }
+    }
+
+    pub fn add_event_handler(
+        &mut self,
+        event_handler: Arc<dyn crate::hydrated_stream_processors::BazelEventHandler>,
+    ) {
+        self.processors.push(event_handler);
     }
 
     pub fn handle_stream(
@@ -22,10 +29,11 @@ impl EventStreamListener {
     ) -> async_channel::Receiver<BuildEventResponse> {
         let (tx, next_rx) = async_channel::unbounded();
 
+        let processors = Arc::new(self.processors.clone());
         for _ in 0..12 {
             let rx = rx.clone();
             let tx = tx.clone();
-            let processors = Arc::clone(&self.processors);
+            let processors = Arc::clone(&processors);
             tokio::spawn(async move {
                 while let Ok(action) = rx.recv().await {
                     match action {

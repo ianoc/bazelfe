@@ -1,7 +1,10 @@
 mod app;
 mod command_line_driver;
+mod progress_tab_updater;
 mod ui;
 mod util;
+
+use std::sync::Arc;
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{
@@ -39,6 +42,13 @@ pub async fn maybe_auto_test_mode<
         } else {
             Err(AutoTestActionError::NoDaemon)
         }?;
+
+        let progress_tab_updater = progress_tab_updater::ProgressTabUpdater {};
+
+        configured_bazel_runner
+            .configured_bazel
+            .aes
+            .add_event_handler(Arc::new(progress_tab_updater));
 
         let mut invalid_since_when: u128 = 0;
         let mut cur_distance = 1;
@@ -129,7 +139,7 @@ pub async fn maybe_auto_test_mode<
                                     .join(", ")
                             );
 
-                            let result = configured_bazel_runner.run_command_line().await?;
+                            let result = configured_bazel_runner.run_command_line(false).await?;
                             if result.final_exit_code != 0 {
                                 continue 'outer_loop;
                             }

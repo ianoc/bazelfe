@@ -132,14 +132,13 @@ impl BazelRunner {
         .await?;
 
         let configured_bazel =
-            super::configured_bazel_runner::ConfiguredBazel::new(&sender_arc, &aes, bes_port);
+            super::configured_bazel_runner::ConfiguredBazel::new(&sender_arc, aes, bes_port);
 
         let configured_bazel_runner = ConfiguredBazelRunner::new(
             Arc::clone(&self.config),
             configured_bazel,
             runner_daemon,
             index_table.clone(),
-            aes,
             self.bazel_command_line.clone(),
             process_build_failures,
         );

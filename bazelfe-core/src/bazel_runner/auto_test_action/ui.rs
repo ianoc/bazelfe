@@ -3,14 +3,14 @@ use std::time::Duration;
 
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect, Wrap},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     symbols,
     text::{Span, Spans},
     widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle},
     widgets::{
         Axis, BarChart, Block, Borders, Chart, Dataset, GraphType, List, ListItem, Paragraph, Row,
-        Table, Tabs,
+        Table, Tabs, Wrap,
     },
     Frame,
 };
@@ -240,35 +240,6 @@ fn draw_second_tab<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
-    let action_style = Style::default().fg(Color::Blue);
-    let target_style = Style::default().fg(Color::Yellow);
-    let test_style = Style::default().fg(Color::Magenta);
-    let unknown_style = Style::default().fg(Color::Red);
-    let logs: Vec<ListItem> = app
-        .action_logs
-        .items
-        .iter()
-        .map(|&(level, evt, run_time)| {
-            let s = match level {
-                "ACTION" => action_style,
-                "TARGET" => target_style,
-                "TEST" => test_style,
-                _ => unknown_style,
-            };
-            let content = vec![Spans::from(vec![
-                Span::styled(format!("{:<9}", level), s),
-                Span::raw(evt),
-                Span::raw(format!(" in {:?}", Duration::from_secs(run_time.into()))),
-            ])];
-            ListItem::new(content)
-        })
-        .collect();
-    let logs = List::new(logs).block(
-        Block::default()
-            .borders(Borders::ALL)
-            .title("Completion events"),
-    );
-
     let text = vec![
         Spans::from(vec![
             Span::raw("First"),

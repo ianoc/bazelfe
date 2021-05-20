@@ -210,6 +210,9 @@ where
     let target_style = Style::default().fg(Color::Yellow);
     let test_style = Style::default().fg(Color::Magenta);
     let unknown_style = Style::default().fg(Color::Red);
+
+    let success_span = Span::styled("SUCCESS", Style::default().fg(Color::Red));
+    let failed_span = Span::styled("SUCCESS", Style::default().fg(Color::Red));
     let logs: Vec<ListItem> = app
         .action_logs
         .items
@@ -228,8 +231,14 @@ where
                 super::CompleteKind::Test => "TEST",
             };
 
+            let mid_span = if action_entry.success {
+                &success_span
+            } else {
+                &failed_span
+            };
             let content = vec![Spans::from(vec![
                 Span::styled(format!("{:<9}", lvl_str), s),
+                mid_span.clone(),
                 Span::raw(action_entry.label.clone()),
                 Span::raw(format!(" in {:?}", action_entry.duration)),
             ])];

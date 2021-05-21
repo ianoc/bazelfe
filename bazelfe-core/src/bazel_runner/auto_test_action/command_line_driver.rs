@@ -36,7 +36,6 @@ fn main_loop(
     terminal.clear()?;
     let mut app = App::new(
         "BazelFE AutoTest Dashboard",
-        true,
         progress_receiver,
         changed_file_rx,
         action_event_rx,

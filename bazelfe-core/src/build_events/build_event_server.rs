@@ -39,6 +39,7 @@ pub mod bazel_event {
 
                             let v = build_event_stream::BuildEvent::decode(&*e.value).unwrap();
 
+                            eprintln!("{:#?}", v);
                             let target_configured_evt: Option<TargetConfiguredEvt> = {
                                 let target_kind_opt = v.payload.as_ref().and_then(|e| match e {
                                     build_event_stream::build_event::Payload::Configured(cfg) => {

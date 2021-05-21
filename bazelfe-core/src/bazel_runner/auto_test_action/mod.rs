@@ -127,15 +127,16 @@ pub async fn maybe_auto_test_mode<
                 dirty_files.extend(recent_changed_files);
 
                 'inner_loop: loop {
-                    let changed_targets = match 
-                        daemon_cli
+                    let changed_targets_resp = daemon_cli
                         .targets_from_files(
                             tarpc::context::current(),
                             dirty_files.clone(),
                             cur_distance,
-                            bazel_in_query
+                            bazel_in_query,
                         )
-                        .await? {
+                        .await?;
+
+                    let changed_targets = match changed_targets_resp {
                             crate::bazel_runner_daemon::daemon_service::TargetsFromFilesResponse::InQuery => {
                                 let _ = bazel_status_tx.send_async(BazelStatus::InQuery).await;
                                 bazel_in_query = true;

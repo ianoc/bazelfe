@@ -157,7 +157,7 @@ impl<'a> App<'a> {
         App {
             title,
             should_quit: false,
-            tabs: TabsState::new(vec!["Build Activity", "To be built"]),
+            tabs: TabsState::new(vec!["Build Activity", "Bazel logs"]),
             show_chart: true,
             progress: 0.0,
             sparkline: Signal {

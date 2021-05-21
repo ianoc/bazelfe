@@ -96,7 +96,10 @@ pub fn main(
                 }
             }
             if last_tick.elapsed() >= tick_rate {
-                tx.send(Event::Tick).unwrap();
+                if let Err(_) = tx.send(Event::Tick) {
+                    info!("Tick failed to send, assuming shutdown");
+                    break;
+                };
                 last_tick = Instant::now();
             }
         }

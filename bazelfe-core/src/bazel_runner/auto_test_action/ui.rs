@@ -71,8 +71,16 @@ where
         .direction(Direction::Horizontal)
         .split(area);
 
+    let bazel_status_span = match app.bazel_status {
+        super::BazelStatus::Idle => Span::styled("Idle", Style::default().bg(Color::LightBlue)),
+        super::BazelStatus::Build => Span::styled("Build", Style::default().bg(Color::LightGreen)),
+        super::BazelStatus::Test => Span::styled("Test", Style::default().bg(Color::LightYellow)),
+        super::BazelStatus::InQuery => {
+            Span::styled("Test", Style::default().bg(Color::LightMagenta))
+        }
+    };
     let text: Vec<Spans> = vec![
-        Spans(vec![Span::raw("Bazel status: ")]),
+        Spans(vec![Span::raw("Bazel status: "), bazel_status_span]),
         Spans(vec![Span::raw("Build status: ")]),
     ];
     let system_status = Paragraph::new(Text { lines: text })

@@ -15,6 +15,13 @@ use crate::{
 
 use thiserror::Error;
 
+#[derive(Debug, Clone, Copy)]
+pub enum BazelStatus {
+    Idle,
+    InQuery,
+    Build,
+    Test,
+}
 #[derive(Error, Debug)]
 pub enum AutoTestActionError {
     #[error("Requested Autotest, but the daemon isn't running")]
@@ -56,6 +63,7 @@ pub async fn maybe_auto_test_mode<
         } else {
             Err(AutoTestActionError::NoDaemon)
         }?;
+        let (bazel_status_tx, bazel_status_rx) = flume::unbounded::<BazelStatus>();
         let (progress_pump_sender, progress_receiver) = flume::unbounded::<String>();
         let (changed_file_tx, changed_file_rx) = flume::unbounded::<PathBuf>();
         let (action_event_tx, action_event_rx) = flume::unbounded::<ActionTargetStateScrollEntry>();
@@ -73,8 +81,13 @@ pub async fn maybe_auto_test_mode<
         let max_distance = 3;
         let mut dirty_files: Vec<FileStatus> = Vec::default();
 
-        let main_running =
-            command_line_driver::main(progress_receiver, changed_file_rx, action_event_rx)?;
+        let main_running = command_line_driver::main(
+            progress_receiver,
+            changed_file_rx,
+            action_event_rx,
+            bazel_status_rx,
+        )?;
+        let mut bazel_in_query = false;
         'outer_loop: loop {
             match main_running.try_recv() {
                 Ok(inner_result) => {
@@ -90,9 +103,31 @@ pub async fn maybe_auto_test_mode<
                     }
                 },
             }
-            let recent_changed_files: Vec<FileStatus> = daemon_cli
-                .wait_for_files(tarpc::context::current(), invalid_since_when)
+
+            let recent_changed_files_response = daemon_cli
+                .wait_for_files(
+                    tarpc::context::current(),
+                    invalid_since_when,
+                    bazel_in_query,
+                )
                 .await?;
+            let recent_changed_files: Vec<crate::bazel_runner_daemon::daemon_service::FileStatus> =
+                match recent_changed_files_response {
+                    crate::bazel_runner_daemon::daemon_service::WaitForFilesResponse::TimedOut => {
+                        continue 'outer_loop
+                    }
+                    crate::bazel_runner_daemon::daemon_service::WaitForFilesResponse::InQuery => {
+                        let _ = bazel_status_tx.send_async(BazelStatus::InQuery).await;
+
+                        bazel_in_query = true;
+                        continue 'outer_loop;
+                    }
+                    crate::bazel_runner_daemon::daemon_service::WaitForFilesResponse::Files(f) => {
+                        bazel_in_query = false;
+                        let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
+                        f
+                    }
+                };
             if !recent_changed_files.is_empty() {
                 invalid_since_when = daemon_cli
                     .request_instant(tarpc::context::current())
@@ -128,7 +163,9 @@ pub async fn maybe_auto_test_mode<
                                 .push(t.target_label().clone());
                         }
 
+                        let _ = bazel_status_tx.send_async(BazelStatus::Build).await;
                         let result = configured_bazel_runner.run_command_line(false).await?;
+                        let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
                         if result.final_exit_code != 0 {
                             continue 'outer_loop;
                         }
@@ -159,7 +196,10 @@ pub async fn maybe_auto_test_mode<
                                     BuiltInAction::Test,
                                 ));
 
+                            let _ = bazel_status_tx.send_async(BazelStatus::Test).await;
                             let result = configured_bazel_runner.run_command_line(false).await?;
+                            let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
+
                             if result.final_exit_code != 0 {
                                 continue 'outer_loop;
                             }

@@ -374,17 +374,26 @@ impl TargetCache {
         }
     }
 
-    pub async fn wait_for_files(&self, instant: u128) -> Vec<super::daemon_service::FileStatus> {
+    pub async fn wait_for_files(
+        &self,
+        instant: u128,
+        was_in_query: bool,
+    ) -> super::daemon_service::WaitForFilesResponse {
         let start_time = Instant::now();
         let max_wait = Duration::from_millis(20);
 
+        if !was_in_query && self.pending_hydrations.load(Ordering::Acquire) > 0 {
+            return super::daemon_service::WaitForFilesResponse::InQuery;
+        }
         loop {
             if *self.last_update_ts.lock().await > instant {
-                return self.get_recent_files(instant).await;
+                return super::daemon_service::WaitForFilesResponse::Files(
+                    self.get_recent_files(instant).await,
+                );
             }
 
             if Instant::now().sub(start_time) > max_wait {
-                return Vec::default();
+                return super::daemon_service::WaitForFilesResponse::TimedOut;
             }
             match self
                 .inotify_receiver
@@ -392,11 +401,13 @@ impl TargetCache {
             {
                 Ok(v) => {
                     if v > instant {
-                        return self.get_recent_files(instant).await;
+                        return super::daemon_service::WaitForFilesResponse::Files(
+                            self.get_recent_files(instant).await,
+                        );
                     }
                 }
                 Err(_) => {
-                    return Vec::default();
+                    return super::daemon_service::WaitForFilesResponse::TimedOut;
                 }
             }
         }
@@ -432,10 +443,13 @@ impl super::daemon_service::RunnerDaemon for DaemonServerInstance {
         self,
         _: tarpc::context::Context,
         instant: u128,
-    ) -> Vec<super::daemon_service::FileStatus> {
+        was_in_query: bool,
+    ) -> super::daemon_service::WaitForFilesResponse {
         self.most_recent_call
             .fetch_add(1, std::sync::atomic::Ordering::Release);
-        self.target_cache.wait_for_files(instant).await
+        self.target_cache
+            .wait_for_files(instant, was_in_query)
+            .await
     }
 
     async fn recently_changed_files(

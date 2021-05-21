@@ -12,14 +12,6 @@ const TASKS: [&str; 24] = [
     "Item20", "Item21", "Item22", "Item23", "Item24",
 ];
 
-const ACTION_LOGS: [(&str, &str); 3] = [
-    (
-        "ACTION",
-        "//src/main/scala/com/example/foo/foo/foo_blah.scala",
-    ),
-    ("TARGET", "//src/main/scala/com/example/foo/foo:foo"),
-    ("TEST", "//src/test/scala/com/example/foo:foo_test"),
-];
 const LOGS: [(&str, &str); 26] = [
     ("Event1", "INFO"),
     ("Event2", "INFO"),
@@ -131,6 +123,8 @@ pub struct App<'a> {
     pub progress_receiver: flume::Receiver<String>,
     pub file_change_receiver: flume::Receiver<PathBuf>,
     pub recent_files: HashMap<PathBuf, Instant>,
+    pub bazel_status_rx: flume::Receiver<super::BazelStatus>,
+    pub bazel_status: super::BazelStatus,
     pub progress_logs: Vec<String>,
     pub logs: StatefulList<(&'a str, &'a str)>,
     pub signals: Signals,
@@ -149,6 +143,7 @@ impl<'a> App<'a> {
         progress_receiver: flume::Receiver<String>,
         file_change_receiver: flume::Receiver<PathBuf>,
         action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
+        bazel_status_rx: flume::Receiver<super::BazelStatus>,
     ) -> App<'a> {
         let mut rand_signal = RandomSignal::new(0, 100);
         let sparkline_points = rand_signal.by_ref().take(300).collect();
@@ -172,6 +167,8 @@ impl<'a> App<'a> {
             progress_receiver,
             file_change_receiver,
             action_event_rx,
+            bazel_status_rx,
+            bazel_status: super::BazelStatus::Idle,
             recent_files: HashMap::default(),
             progress_logs: Vec::default(),
             logs: StatefulList::with_items(LOGS.to_vec()),
@@ -258,6 +255,10 @@ impl<'a> App<'a> {
 
         self.sparkline.on_tick();
         self.signals.on_tick();
+
+        while let Ok(r) = self.bazel_status_rx.try_recv() {
+            self.bazel_status = r;
+        }
 
         while let Ok(r) = self.action_event_rx.try_recv() {
             let mut prev_idx = None;

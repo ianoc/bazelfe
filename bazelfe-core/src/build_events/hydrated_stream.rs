@@ -179,6 +179,7 @@ impl HydratedInfo {
                             }
                         }
                         bazel_event::Evt::TargetCompleted(tce) => {
+                            eprintln!("{:#?}", tce);
                             if let Some(target_complete_info) = tce_event(
                                 tce,
                                 &rule_kind_lookup,

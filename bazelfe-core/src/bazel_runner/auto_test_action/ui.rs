@@ -42,35 +42,17 @@ where
     B: Backend,
 {
     let chunks = Layout::default()
-        .constraints(
-            [
-                Constraint::Length(15),
-                Constraint::Min(7),
-                Constraint::Length(7),
-            ]
-            .as_ref(),
-        )
+        .constraints([Constraint::Min(7), Constraint::Min(7), Constraint::Min(7)].as_ref())
         .split(area);
-    draw_top_bar(f, app, chunks[0]);
+    draw_system_status(f, app, chunks[0]);
+    draw_recent_file_changes(f, app, chunks[1]);
     draw_text(f, app, chunks[2]);
 }
 
-fn draw_top_bar<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
+fn draw_system_status<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
-    let chunks = Layout::default()
-        .constraints(
-            vec![
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
-                Constraint::Percentage(33),
-            ]
-            .as_ref(),
-        )
-        .direction(Direction::Horizontal)
-        .split(area);
-
     let bazel_status_span = match app.bazel_status {
         super::BazelStatus::Idle => Span::styled("Idle", Style::default().bg(Color::LightBlue)),
         super::BazelStatus::Build => Span::styled("Build", Style::default().bg(Color::LightGreen)),
@@ -103,79 +85,7 @@ where
         .alignment(Alignment::Left)
         .wrap(Wrap { trim: false });
 
-    f.render_widget(system_status, chunks[0]);
-
-    let sub_chunks = Layout::default()
-        .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())
-        .direction(Direction::Vertical)
-        .split(chunks[1]);
-
-    let bar_gap = if sub_chunks[0].width > 50 { 2 } else { 1 };
-    let bar_width = (sub_chunks[0].width - bar_gap - 5) / (app.completed_actions.len()) as u16;
-    let completed_actions = BarChart::default()
-        .block(
-            Block::default()
-                .borders(Borders::RIGHT)
-                .title("Launched Actions:"),
-        )
-        .data(&app.completed_actions)
-        .bar_width(bar_width)
-        .bar_gap(bar_gap)
-        .bar_set(if app.enhanced_graphics {
-            symbols::bar::NINE_LEVELS
-        } else {
-            symbols::bar::THREE_LEVELS
-        })
-        .value_style(
-            Style::default()
-                .fg(Color::Black)
-                .bg(Color::Green)
-                .add_modifier(Modifier::ITALIC),
-        )
-        .label_style(Style::default().fg(Color::Yellow))
-        .bar_style(Style::default().fg(Color::Green));
-    f.render_widget(completed_actions, sub_chunks[0]);
-    let bar_gap = if sub_chunks[1].width > 50 { 2 } else { 1 };
-    let bar_width = (sub_chunks[1].width - bar_gap - 5) / (app.completed_actions.len()) as u16;
-    let completed_actions = BarChart::default()
-        .block(
-            Block::default()
-                .borders(Borders::RIGHT)
-                .title("Completed Actions:"),
-        )
-        .data(&app.completed_actions)
-        .bar_width(bar_width)
-        .bar_gap(bar_gap)
-        .bar_set(if app.enhanced_graphics {
-            symbols::bar::NINE_LEVELS
-        } else {
-            symbols::bar::THREE_LEVELS
-        })
-        .value_style(
-            Style::default()
-                .fg(Color::Black)
-                .bg(Color::Green)
-                .add_modifier(Modifier::ITALIC),
-        )
-        .label_style(Style::default().fg(Color::Yellow))
-        .bar_style(Style::default().fg(Color::Green));
-    f.render_widget(completed_actions, sub_chunks[1]);
-
-    let data: Vec<(f64, f64)> = app
-        .sparkline
-        .points
-        .iter()
-        .enumerate()
-        .map(|(k, v)| (k as f64, *v as f64 % 20.0))
-        .collect();
-
-    let datasets = vec![Dataset::default()
-        .graph_type(GraphType::Line)
-        .marker(symbols::Marker::Braille)
-        .style(Style::default().fg(Color::Yellow))
-        .data(&data)];
-
-    draw_recent_file_changes(f, app, chunks[2]);
+    f.render_widget(system_status, area);
 }
 
 fn draw_recent_file_changes<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -261,7 +171,7 @@ where
             let content = vec![Spans::from(vec![
                 Span::styled(
                     format!(
-                        "{:<10}",
+                        "{:<14}",
                         format!("{} ago", format_duration(elapsed).to_string())
                     ),
                     time_style,

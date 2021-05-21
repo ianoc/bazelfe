@@ -3,15 +3,10 @@ use std::time::{Duration, Instant};
 
 use tui::{
     backend::Backend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Modifier, Style},
-    symbols,
+    layout::{Alignment, Constraint, Layout, Rect},
+    style::{Color, Style},
     text::{Span, Spans, Text},
-    widgets::canvas::{Canvas, Line, Map, MapResolution, Rectangle},
-    widgets::{
-        Axis, BarChart, Block, Borders, Chart, Dataset, GraphType, List, ListItem, Paragraph, Row,
-        Table, Tabs, Wrap,
-    },
+    widgets::{Block, Borders, List, ListItem, Paragraph, Tabs, Wrap},
     Frame,
 };
 

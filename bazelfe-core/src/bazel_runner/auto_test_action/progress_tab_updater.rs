@@ -1,4 +1,4 @@
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use crate::hydrated_stream_processors::BazelEventHandler;
 
@@ -37,7 +37,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                 }
             }
 
-            crate::build_events::hydrated_stream::HydratedInfo::BazelAbort(ba) => {}
+            crate::build_events::hydrated_stream::HydratedInfo::BazelAbort(_ba) => {}
             crate::build_events::hydrated_stream::HydratedInfo::ActionFailed(af) => {
                 let _ = self
                     .action_event_tx

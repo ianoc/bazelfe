@@ -408,10 +408,6 @@ impl TargetCache {
         lock.iter()
             .filter_map(|(k, (v, _, _))| {
                 if *v > instant {
-                    eprintln!(
-                        "{:#?}",
-                        Some(super::daemon_service::FileStatus(k.clone(), *v))
-                    );
                     Some(super::daemon_service::FileStatus(k.clone(), *v))
                 } else {
                     None

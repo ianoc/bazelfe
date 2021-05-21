@@ -97,6 +97,10 @@ pub async fn maybe_auto_test_mode<
                 .wait_for_files(tarpc::context::current(), invalid_since_when)
                 .await?;
             if !recent_changed_files.is_empty() {
+                invalid_since_when = daemon_cli
+                    .request_instant(tarpc::context::current())
+                    .await?;
+
                 for f in recent_changed_files.iter() {
                     let _ = changed_file_tx.send_async(f.0.clone()).await;
                 }
@@ -127,18 +131,6 @@ pub async fn maybe_auto_test_mode<
                                 .push(t.target_label().clone());
                         }
 
-                        if cur_distance == 1 {
-                            invalid_since_when = daemon_cli
-                                .request_instant(tarpc::context::current())
-                                .await?;
-                        }
-                        // eprintln!(
-                        //     "Building... {}",
-                        //     configured_bazel_runner
-                        //         .bazel_command_line
-                        //         .remaining_args
-                        //         .join(", ")
-                        // );
                         let result = configured_bazel_runner.run_command_line(false).await?;
                         if result.final_exit_code != 0 {
                             continue 'outer_loop;
@@ -170,24 +162,11 @@ pub async fn maybe_auto_test_mode<
                                     BuiltInAction::Test,
                                 ));
 
-                            // eprintln!(
-                            //     "Testing... {}",
-                            //     configured_bazel_runner
-                            //         .bazel_command_line
-                            //         .remaining_args
-                            //         .join(", ")
-                            // );
-
                             let result = configured_bazel_runner.run_command_line(false).await?;
                             if result.final_exit_code != 0 {
                                 continue 'outer_loop;
                             }
                         }
-
-                        //     eprintln!(
-                        //     "Operating at distance {}, all targets built and tested that were eligble.",
-                        //     cur_distance
-                        // );
                     }
                     if cur_distance >= max_distance {
                         cur_distance = 1;

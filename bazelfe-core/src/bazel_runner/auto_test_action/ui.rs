@@ -71,31 +71,21 @@ where
         .direction(Direction::Horizontal)
         .split(area);
 
-    let bar_gap = if chunks[0].width > 50 { 2 } else { 1 };
-    let bar_width = (chunks[0].width - bar_gap - 5) / (app.nemonics.len()) as u16;
-    let active_nemonics = BarChart::default()
+    let text: Vec<Spans> = vec![
+        Spans(vec![Span::raw("Bazel status: ")]),
+        Spans(vec![Span::raw("Build status: ")]),
+    ];
+    let system_status = Paragraph::new(Text { lines: text })
         .block(
             Block::default()
-                .borders(Borders::RIGHT)
-                .title("Active Action Types:"),
+                .title("System status")
+                .borders(Borders::ALL),
         )
-        .data(&app.nemonics)
-        .bar_width(bar_width)
-        .bar_gap(bar_gap)
-        .bar_set(if app.enhanced_graphics {
-            symbols::bar::NINE_LEVELS
-        } else {
-            symbols::bar::THREE_LEVELS
-        })
-        .value_style(
-            Style::default()
-                .fg(Color::Black)
-                .bg(Color::Blue)
-                .add_modifier(Modifier::ITALIC),
-        )
-        .label_style(Style::default().fg(Color::Yellow))
-        .bar_style(Style::default().fg(Color::Blue));
-    f.render_widget(active_nemonics, chunks[0]);
+        .style(Style::default().fg(Color::White).bg(Color::Black))
+        .alignment(Alignment::Left)
+        .wrap(Wrap { trim: false });
+
+    f.render_widget(system_status, chunks[0]);
 
     let sub_chunks = Layout::default()
         .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)].as_ref())

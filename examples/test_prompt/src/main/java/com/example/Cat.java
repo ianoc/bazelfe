@@ -2,5 +2,5 @@ package com.example;
 
 
 public class Cat {
-    public String name = "Furasdry";
+    public String name = "Furry";
 }

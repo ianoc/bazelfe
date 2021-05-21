@@ -135,13 +135,12 @@ pub mod daemon_service {
     pub struct FileStatus(pub PathBuf, pub u128);
 
     #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
-    pub enum WaitForFilesResponse {
-        TimedOut,
-        Files(Vec<FileStatus>),
+    pub enum TargetsFromFilesResponse {
+        Targets(Vec<Targets>),
         InQuery,
     }
 
-    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
     pub enum Targets {
         Test(TestTarget),
         Build(BuildTarget),
@@ -174,8 +173,12 @@ pub mod daemon_service {
     pub trait RunnerDaemon {
         async fn request_instant() -> u128;
         async fn recently_changed_files(instant: u128) -> Vec<FileStatus>;
-        async fn wait_for_files(instant: u128, was_in_query: bool) -> WaitForFilesResponse;
-        async fn targets_from_files(files: Vec<FileStatus>, distance: u32) -> Vec<Targets>;
+        async fn wait_for_files(instant: u128) -> Vec<FileStatus>;
+        async fn targets_from_files(
+            files: Vec<FileStatus>,
+            distance: u32,
+            was_in_query: bool,
+        ) -> TargetsFromFilesResponse;
 
         async fn recently_invalidated_targets(distance: u32) -> Vec<Targets>;
 

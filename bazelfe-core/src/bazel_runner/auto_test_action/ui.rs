@@ -75,9 +75,10 @@ where
         super::BazelStatus::Idle => Span::styled("Idle", Style::default().bg(Color::LightBlue)),
         super::BazelStatus::Build => Span::styled("Build", Style::default().bg(Color::LightGreen)),
         super::BazelStatus::Test => Span::styled("Test", Style::default().bg(Color::LightYellow)),
-        super::BazelStatus::InQuery => {
-            Span::styled("Test", Style::default().bg(Color::LightMagenta))
-        }
+        super::BazelStatus::InQuery => Span::styled(
+            "System querying Dependencies",
+            Style::default().bg(Color::LightMagenta),
+        ),
     };
     let text: Vec<Spans> = vec![
         Spans(vec![Span::raw("Bazel status: "), bazel_status_span]),

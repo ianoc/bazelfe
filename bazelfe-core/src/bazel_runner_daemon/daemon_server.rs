@@ -374,28 +374,18 @@ impl TargetCache {
         }
     }
 
-    pub async fn wait_for_files(
-        &self,
-        instant: u128,
-        was_in_query: bool,
-    ) -> super::daemon_service::WaitForFilesResponse {
+    pub async fn wait_for_files(&self, instant: u128) -> Vec<super::daemon_service::FileStatus> {
         let start_time = Instant::now();
         let max_wait = Duration::from_millis(20);
-        let spin_wait = Duration::from_millis(1);
+        let spin_wait = Duration::from_millis(3);
 
         loop {
-            if !was_in_query && self.pending_hydrations.load(Ordering::Acquire) > 0 {
-                return super::daemon_service::WaitForFilesResponse::InQuery;
-            }
-
             if *self.last_update_ts.lock().await > instant {
-                return super::daemon_service::WaitForFilesResponse::Files(
-                    self.get_recent_files(instant).await,
-                );
+                return self.get_recent_files(instant).await;
             }
 
             if Instant::now().sub(start_time) > max_wait {
-                return super::daemon_service::WaitForFilesResponse::TimedOut;
+                return Vec::default();
             }
             match self
                 .inotify_receiver
@@ -403,9 +393,7 @@ impl TargetCache {
             {
                 Ok(v) => {
                     if v > instant {
-                        return super::daemon_service::WaitForFilesResponse::Files(
-                            self.get_recent_files(instant).await,
-                        );
+                        return self.get_recent_files(instant).await;
                     }
                 }
                 Err(_) => (),
@@ -443,13 +431,10 @@ impl super::daemon_service::RunnerDaemon for DaemonServerInstance {
         self,
         _: tarpc::context::Context,
         instant: u128,
-        was_in_query: bool,
-    ) -> super::daemon_service::WaitForFilesResponse {
+    ) -> Vec<super::daemon_service::FileStatus> {
         self.most_recent_call
             .fetch_add(1, std::sync::atomic::Ordering::Release);
-        self.target_cache
-            .wait_for_files(instant, was_in_query)
-            .await
+        self.target_cache.wait_for_files(instant).await
     }
 
     async fn recently_changed_files(
@@ -477,7 +462,13 @@ impl super::daemon_service::RunnerDaemon for DaemonServerInstance {
             .fetch_add(1, std::sync::atomic::Ordering::Release);
 
         let recent_files = self.target_cache.get_recent_files(0).await;
-        self.targets_from_files(ctx, recent_files, distance).await
+        match self
+            .targets_from_files(ctx, recent_files, distance, true)
+            .await
+        {
+            super::daemon_service::TargetsFromFilesResponse::Targets(t) => t,
+            super::daemon_service::TargetsFromFilesResponse::InQuery => unreachable!(),
+        }
     }
 
     async fn targets_from_files(
@@ -485,13 +476,17 @@ impl super::daemon_service::RunnerDaemon for DaemonServerInstance {
         _: tarpc::context::Context,
         files: Vec<super::daemon_service::FileStatus>,
         distance: u32,
-    ) -> Vec<super::daemon_service::Targets> {
+        was_in_query: bool,
+    ) -> super::daemon_service::TargetsFromFilesResponse {
         while self
             .target_cache
             .pending_hydrations
             .load(std::sync::atomic::Ordering::Acquire)
             > 0
         {
+            if !was_in_query {
+                return super::daemon_service::TargetsFromFilesResponse::InQuery;
+            }
             tokio::time::sleep(Duration::from_millis(5)).await;
         }
         let target_ids = files.iter().filter_map(|f| {
@@ -546,7 +541,7 @@ impl super::daemon_service::RunnerDaemon for DaemonServerInstance {
                 TargetType::Src(_) => {}
             }
         }
-        result_targets
+        super::daemon_service::TargetsFromFilesResponse::Targets(result_targets)
     }
 
     async fn request_instant(self, _: tarpc::context::Context) -> u128 {

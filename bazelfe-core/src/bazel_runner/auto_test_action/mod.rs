@@ -104,30 +104,10 @@ pub async fn maybe_auto_test_mode<
                 },
             }
 
-            let recent_changed_files_response = daemon_cli
-                .wait_for_files(
-                    tarpc::context::current(),
-                    invalid_since_when,
-                    bazel_in_query,
-                )
+            let recent_changed_files = daemon_cli
+                .wait_for_files(tarpc::context::current(), invalid_since_when)
                 .await?;
-            let recent_changed_files: Vec<crate::bazel_runner_daemon::daemon_service::FileStatus> =
-                match recent_changed_files_response {
-                    crate::bazel_runner_daemon::daemon_service::WaitForFilesResponse::TimedOut => {
-                        continue 'outer_loop
-                    }
-                    crate::bazel_runner_daemon::daemon_service::WaitForFilesResponse::InQuery => {
-                        let _ = bazel_status_tx.send_async(BazelStatus::InQuery).await;
 
-                        bazel_in_query = true;
-                        continue 'outer_loop;
-                    }
-                    crate::bazel_runner_daemon::daemon_service::WaitForFilesResponse::Files(f) => {
-                        bazel_in_query = false;
-                        let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
-                        f
-                    }
-                };
             if !recent_changed_files.is_empty() {
                 invalid_since_when = daemon_cli
                     .request_instant(tarpc::context::current())
@@ -139,13 +119,26 @@ pub async fn maybe_auto_test_mode<
                 dirty_files.extend(recent_changed_files);
 
                 'inner_loop: loop {
-                    let changed_targets = daemon_cli
+                    let changed_targets = match 
+                        daemon_cli
                         .targets_from_files(
                             tarpc::context::current(),
                             dirty_files.clone(),
                             cur_distance,
+                            bazel_in_query
                         )
-                        .await?;
+                        .await? {
+                            crate::bazel_runner_daemon::daemon_service::TargetsFromFilesResponse::InQuery => {
+                                let _ = bazel_status_tx.send_async(BazelStatus::InQuery).await;
+                                bazel_in_query = true;
+                                continue 'inner_loop;
+                            }
+                            crate::bazel_runner_daemon::daemon_service::TargetsFromFilesResponse::Targets(t) => {
+                                bazel_in_query = false;
+                                            let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
+                                            t
+                            }
+                        };
 
                     if !changed_targets.is_empty() {
                         configured_bazel_runner.bazel_command_line.action = Some(

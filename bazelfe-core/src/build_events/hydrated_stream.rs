@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use super::build_event_server::bazel_event::{self, TestSummaryEvt};
+use super::build_event_server::bazel_event::{self, TestResultEvt};
 use super::build_event_server::BuildEventAction;
 use bazelfe_protos::*;
 
@@ -23,8 +23,8 @@ pub struct ActionFailedErrorInfo {
 }
 
 #[derive(Clone, PartialEq, Debug)]
-pub struct TestSummaryInfo {
-    pub test_summary_event: TestSummaryEvt,
+pub struct TestResultInfo {
+    pub test_summary_event: TestResultEvt,
     pub target_kind: Option<String>,
 }
 
@@ -59,7 +59,7 @@ pub enum HydratedInfo {
     BazelAbort(BazelAbortErrorInfo),
     ActionFailed(ActionFailedErrorInfo),
     Progress(bazel_event::ProgressEvt),
-    TestSummary(TestSummaryInfo),
+    TestResult(TestResultInfo),
     ActionSuccess(ActionSuccessInfo),
     TargetComplete(TargetCompleteInfo),
 }
@@ -225,12 +225,12 @@ impl HydratedInfo {
                             }
                         }
 
-                        bazel_event::Evt::TestSummary(tfe) => {
-                            let tst_info = TestSummaryInfo {
+                        bazel_event::Evt::TestResult(tfe) => {
+                            let tst_info = TestResultInfo {
                                 target_kind: rule_kind_lookup.get(&tfe.label).map(|e| e.clone()),
                                 test_summary_event: tfe,
                             };
-                            tx.send(Some(HydratedInfo::TestSummary(tst_info)))
+                            tx.send(Some(HydratedInfo::TestResult(tst_info)))
                                 .await
                                 .unwrap();
                         }

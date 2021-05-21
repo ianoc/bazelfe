@@ -216,7 +216,7 @@ impl<T: Buildozer, U: CommandLineRunner> ProcessBazelFailures<T, U> {
                     .await,
                 ]
             }
-            hydrated_stream::HydratedInfo::TestSummary(tst_summary) => {
+            hydrated_stream::HydratedInfo::TestResult(_) => {
                 vec![]
             }
         };

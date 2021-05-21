@@ -211,7 +211,6 @@ where
     let action_style = Style::default().fg(Color::Blue);
     let target_style = Style::default().fg(Color::Yellow);
     let test_style = Style::default().fg(Color::Magenta);
-    let unknown_style = Style::default().fg(Color::Red);
 
     let success_span = Span::styled(
         format!("{:<11}", "SUCCESS"),

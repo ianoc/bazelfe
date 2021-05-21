@@ -211,10 +211,10 @@ pub mod bazel_event {
                                     build_event_stream::TestStatus,
                                     Vec<build_event_stream::file::File>,
                                 )> = v.payload.as_ref().and_then(|e| match e {
-                                    build_event_stream::build_event::Payload::TestSummary(cfg) => {
+                                    build_event_stream::build_event::Payload::TestResult(cfg) => {
                                         Some((
-                                            cfg.overall_status(),
-                                            cfg.failed
+                                            cfg.status(),
+                                            cfg.test_action_output
                                                 .iter()
                                                 .flat_map(|e| e.file.clone().into_iter())
                                                 .collect(),
@@ -226,7 +226,7 @@ pub mod bazel_event {
                                 let target_label_opt =
                                     v.id.as_ref().and_then(|e| e.id.as_ref()).and_then(
                                         |e| match e {
-                                            build_event_stream::build_event_id::Id::TestSummary(
+                                            build_event_stream::build_event_id::Id::TestResult(
                                                 test_summary_id,
                                             ) => Some(test_summary_id.label.clone()),
                                             _ => None,
@@ -247,7 +247,7 @@ pub mod bazel_event {
                                         build_event_stream::TestStatus::FailedToBuild => TestStatus::FailedToBuild,
                                         build_event_stream::TestStatus::ToolHaltedBeforeTesting => TestStatus::ToolHaltedBeforeTesting,
                                     };
-                                    Evt::TestSummary(TestSummaryEvt {
+                                    Evt::TestResult(TestResultEvt {
                                         label: u,
                                         test_status,
                                         failed_files: failed_files,
@@ -317,7 +317,7 @@ pub mod bazel_event {
         ToolHaltedBeforeTesting,
     }
     #[derive(Clone, PartialEq, Debug)]
-    pub struct TestSummaryEvt {
+    pub struct TestResultEvt {
         pub label: String,
         pub test_status: TestStatus,
         pub failed_files: Vec<build_event_stream::file::File>,
@@ -340,7 +340,7 @@ pub mod bazel_event {
         BazelEvent(build_event_stream::BuildEvent),
         TargetConfigured(TargetConfiguredEvt),
         ActionCompleted(ActionCompletedEvt),
-        TestSummary(TestSummaryEvt),
+        TestResult(TestResultEvt),
         Progress(ProgressEvt),
         Aborted(AbortedEvt),
         TargetCompleted(TargetCompletedEvt),

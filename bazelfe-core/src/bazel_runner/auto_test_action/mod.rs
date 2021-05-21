@@ -22,6 +22,12 @@ pub enum BazelStatus {
     Build,
     Test,
 }
+
+#[derive(Debug, Clone, Copy)]
+pub enum BuildStatus {
+    ActionsGreen,
+    ActionsFailing,
+}
 #[derive(Error, Debug)]
 pub enum AutoTestActionError {
     #[error("Requested Autotest, but the daemon isn't running")]
@@ -64,6 +70,7 @@ pub async fn maybe_auto_test_mode<
             Err(AutoTestActionError::NoDaemon)
         }?;
         let (bazel_status_tx, bazel_status_rx) = flume::unbounded::<BazelStatus>();
+        let (build_status_tx, build_status_rx) = flume::unbounded::<BuildStatus>();
         let (progress_pump_sender, progress_receiver) = flume::unbounded::<String>();
         let (changed_file_tx, changed_file_rx) = flume::unbounded::<PathBuf>();
         let (action_event_tx, action_event_rx) = flume::unbounded::<ActionTargetStateScrollEntry>();
@@ -86,6 +93,7 @@ pub async fn maybe_auto_test_mode<
             changed_file_rx,
             action_event_rx,
             bazel_status_rx,
+            build_status_rx,
         )?;
         let mut bazel_in_query = false;
         'outer_loop: loop {
@@ -160,6 +168,9 @@ pub async fn maybe_auto_test_mode<
                         let result = configured_bazel_runner.run_command_line(false).await?;
                         let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
                         if result.final_exit_code != 0 {
+                            build_status_tx
+                                .send_async(BuildStatus::ActionsFailing)
+                                .await?;
                             continue 'outer_loop;
                         }
 
@@ -194,9 +205,16 @@ pub async fn maybe_auto_test_mode<
                             let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
 
                             if result.final_exit_code != 0 {
+                                build_status_tx
+                                    .send_async(BuildStatus::ActionsFailing)
+                                    .await?;
+
                                 continue 'outer_loop;
                             }
                         }
+                        build_status_tx
+                            .send_async(BuildStatus::ActionsGreen)
+                            .await?;
                     }
                     if cur_distance >= max_distance {
                         cur_distance = 1;

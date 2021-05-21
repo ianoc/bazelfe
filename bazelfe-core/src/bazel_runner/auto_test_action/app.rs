@@ -125,6 +125,8 @@ pub struct App<'a> {
     pub recent_files: HashMap<PathBuf, Instant>,
     pub bazel_status_rx: flume::Receiver<super::BazelStatus>,
     pub bazel_status: super::BazelStatus,
+    pub build_status_rx: flume::Receiver<super::BuildStatus>,
+    pub build_status: super::BuildStatus,
     pub progress_logs: Vec<String>,
     pub logs: StatefulList<(&'a str, &'a str)>,
     pub signals: Signals,
@@ -144,6 +146,7 @@ impl<'a> App<'a> {
         file_change_receiver: flume::Receiver<PathBuf>,
         action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
         bazel_status_rx: flume::Receiver<super::BazelStatus>,
+        build_status_rx: flume::Receiver<super::BuildStatus>,
     ) -> App<'a> {
         let mut rand_signal = RandomSignal::new(0, 100);
         let sparkline_points = rand_signal.by_ref().take(300).collect();
@@ -169,6 +172,8 @@ impl<'a> App<'a> {
             action_event_rx,
             bazel_status_rx,
             bazel_status: super::BazelStatus::Idle,
+            build_status_rx,
+            build_status: super::BuildStatus::ActionsGreen,
             recent_files: HashMap::default(),
             progress_logs: Vec::default(),
             logs: StatefulList::with_items(LOGS.to_vec()),
@@ -258,6 +263,10 @@ impl<'a> App<'a> {
 
         while let Ok(r) = self.bazel_status_rx.try_recv() {
             self.bazel_status = r;
+        }
+
+        while let Ok(r) = self.build_status_rx.try_recv() {
+            self.build_status = r;
         }
 
         while let Ok(r) = self.action_event_rx.try_recv() {

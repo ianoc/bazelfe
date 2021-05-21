@@ -80,9 +80,18 @@ where
             Style::default().bg(Color::LightMagenta),
         ),
     };
+
+    let build_status_span = match app.build_status {
+        super::BuildStatus::ActionsFailing => {
+            Span::styled("Failing", Style::default().bg(Color::LightRed))
+        }
+        super::BuildStatus::ActionsGreen => {
+            Span::styled("Success", Style::default().bg(Color::LightGreen))
+        }
+    };
     let text: Vec<Spans> = vec![
         Spans(vec![Span::raw("Bazel status: "), bazel_status_span]),
-        Spans(vec![Span::raw("Build status: ")]),
+        Spans(vec![Span::raw("Build status: "), build_status_span]),
     ];
     let system_status = Paragraph::new(Text { lines: text })
         .block(

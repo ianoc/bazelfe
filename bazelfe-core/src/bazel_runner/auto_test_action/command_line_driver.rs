@@ -25,6 +25,7 @@ fn main_loop(
     rx: flume::Receiver<Event<KeyEvent>>,
     action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
     bazel_status_rx: flume::Receiver<super::BazelStatus>,
+    build_status_rx: flume::Receiver<super::BuildStatus>,
 ) -> Result<(), Box<dyn Error>> {
     let mut stdout = stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -40,6 +41,7 @@ fn main_loop(
         changed_file_rx,
         action_event_rx,
         bazel_status_rx,
+        build_status_rx,
     );
 
     loop {
@@ -79,6 +81,7 @@ pub fn main(
     changed_file_rx: flume::Receiver<PathBuf>,
     action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
     bazel_status_rx: flume::Receiver<super::BazelStatus>,
+    build_status_rx: flume::Receiver<super::BuildStatus>,
 ) -> Result<flume::Receiver<Result<(), String>>, Box<dyn Error>> {
     enable_raw_mode()?;
 
@@ -117,6 +120,7 @@ pub fn main(
             rx,
             action_event_rx,
             bazel_status_rx,
+            build_status_rx,
         ) {
             Err(format!("{:#?}", e))
         } else {

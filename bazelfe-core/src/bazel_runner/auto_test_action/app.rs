@@ -260,7 +260,21 @@ impl<'a> App<'a> {
         self.signals.on_tick();
 
         while let Ok(r) = self.action_event_rx.try_recv() {
-            self.action_logs.items.insert(0, r);
+            let mut prev_idx = None;
+            for (idx, item) in self.action_logs.items.iter().enumerate() {
+                // starts at the left which is the newest
+                if item.bazel_run_id != r.bazel_run_id {
+                    break;
+                }
+                if item.label == r.label {
+                    prev_idx = Some(idx);
+                }
+            }
+            if let Some(prev_idx) = prev_idx {
+                self.action_logs.items[prev_idx] = r;
+            } else {
+                self.action_logs.items.insert(0, r);
+            }
         }
 
         let len = self.action_logs.items.len();

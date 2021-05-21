@@ -38,6 +38,7 @@ pub struct ActionTargetStateScrollEntry {
     pub success: bool,
     pub label: String,
     pub duration: Duration,
+    pub bazel_run_id: usize,
 }
 pub async fn maybe_auto_test_mode<
     T: buildozer_driver::Buildozer,

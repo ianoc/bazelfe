@@ -33,6 +33,7 @@ pub struct IndexNewResults {
 impl super::BazelEventHandler for IndexNewResults {
     async fn process_event(
         &self,
+        _bazel_run_id: usize,
         event: &hydrated_stream::HydratedInfo,
     ) -> Vec<super::BuildEventResponse> {
         self.process(event).await

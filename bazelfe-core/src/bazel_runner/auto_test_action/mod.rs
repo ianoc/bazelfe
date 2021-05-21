@@ -199,9 +199,10 @@ pub async fn maybe_auto_test_mode<
                 }
             }
         }
+        Ok(true)
+    } else {
+        Ok(false)
     }
-
-    Ok(false)
 }
 
 #[cfg(test)]

@@ -381,11 +381,13 @@ impl TargetCache {
     ) -> super::daemon_service::WaitForFilesResponse {
         let start_time = Instant::now();
         let max_wait = Duration::from_millis(20);
+        let spin_wait = Duration::from_millis(1);
 
-        if !was_in_query && self.pending_hydrations.load(Ordering::Acquire) > 0 {
-            return super::daemon_service::WaitForFilesResponse::InQuery;
-        }
         loop {
+            if !was_in_query && self.pending_hydrations.load(Ordering::Acquire) > 0 {
+                return super::daemon_service::WaitForFilesResponse::InQuery;
+            }
+
             if *self.last_update_ts.lock().await > instant {
                 return super::daemon_service::WaitForFilesResponse::Files(
                     self.get_recent_files(instant).await,
@@ -397,7 +399,7 @@ impl TargetCache {
             }
             match self
                 .inotify_receiver
-                .recv_deadline(start_time.add(max_wait))
+                .recv_deadline(start_time.add(spin_wait))
             {
                 Ok(v) => {
                     if v > instant {
@@ -406,9 +408,7 @@ impl TargetCache {
                         );
                     }
                 }
-                Err(_) => {
-                    return super::daemon_service::WaitForFilesResponse::TimedOut;
-                }
+                Err(_) => (),
             }
         }
     }

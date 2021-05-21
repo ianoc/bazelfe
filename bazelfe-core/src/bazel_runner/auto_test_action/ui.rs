@@ -187,7 +187,7 @@ where
             let content = vec![Spans::from(vec![
                 Span::styled(
                     format!(
-                        "{:<10}",
+                        "{:<14}",
                         format!("{} ago", format_duration(elapsed).to_string())
                     ),
                     time_style,

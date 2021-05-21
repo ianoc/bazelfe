@@ -29,7 +29,6 @@ use super::configured_bazel_runner::ConfiguredBazelRunner;
 
 pub enum CompleteKind {
     Action,
-    Target,
     Test,
 }
 

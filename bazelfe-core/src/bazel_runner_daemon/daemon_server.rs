@@ -355,6 +355,10 @@ impl TargetCache {
 
                 if do_insert {
                     self.hydrate_new_file_data(real_path.clone()).await;
+                    eprintln!(
+                        "{:#?}",
+                        (real_path.to_path_buf(), (ts, now_instant, current_sha))
+                    );
                     lock.insert(real_path.to_path_buf(), (ts, now_instant, current_sha));
                 }
             }

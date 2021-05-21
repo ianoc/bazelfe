@@ -8,7 +8,7 @@
 
 use std::collections::HashMap;
 
-use super::build_event_server::bazel_event;
+use super::build_event_server::bazel_event::{self, TestSummaryEvt};
 use super::build_event_server::BuildEventAction;
 use bazelfe_protos::*;
 
@@ -19,6 +19,12 @@ use bazelfe_protos::*;
 pub struct ActionFailedErrorInfo {
     pub label: String,
     pub output_files: Vec<build_event_stream::file::File>,
+    pub target_kind: Option<String>,
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub struct TestSummaryInfo {
+    pub test_summary_event: TestSummaryEvt,
     pub target_kind: Option<String>,
 }
 
@@ -53,6 +59,7 @@ pub enum HydratedInfo {
     BazelAbort(BazelAbortErrorInfo),
     ActionFailed(ActionFailedErrorInfo),
     Progress(bazel_event::ProgressEvt),
+    TestSummary(TestSummaryInfo),
     ActionSuccess(ActionSuccessInfo),
     TargetComplete(TargetCompleteInfo),
 }
@@ -218,13 +225,12 @@ impl HydratedInfo {
                             }
                         }
 
-                        bazel_event::Evt::TestFailure(tfe) => {
-                            let err_info = ActionFailedErrorInfo {
-                                output_files: tfe.failed_files,
+                        bazel_event::Evt::TestSummary(tfe) => {
+                            let tst_info = TestSummaryInfo {
                                 target_kind: rule_kind_lookup.get(&tfe.label).map(|e| e.clone()),
-                                label: tfe.label,
+                                test_summary_event: tfe,
                             };
-                            tx.send(Some(HydratedInfo::ActionFailed(err_info)))
+                            tx.send(Some(HydratedInfo::TestSummary(tst_info)))
                                 .await
                                 .unwrap();
                         }

@@ -216,6 +216,9 @@ impl<T: Buildozer, U: CommandLineRunner> ProcessBazelFailures<T, U> {
                     .await,
                 ]
             }
+            hydrated_stream::HydratedInfo::TestSummary(tst_summary) => {
+                vec![]
+            }
         };
         r.into_iter()
             .filter_map(|e| {

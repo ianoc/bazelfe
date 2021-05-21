@@ -188,7 +188,7 @@ where
                 .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
                 Span::styled(
-                    format!("{:<20}", format_duration(elapsed).to_string()),
+                    format!("{:<10}", format_duration(elapsed).to_string()),
                     time_style,
                 ),
                 Span::raw(pb.to_string_lossy()),
@@ -227,7 +227,6 @@ where
                 super::CompleteKind::Action => action_style,
                 super::CompleteKind::Target => target_style,
                 super::CompleteKind::Test => test_style,
-                _ => unknown_style,
             };
 
             let lvl_str = match action_entry.complete_type {

@@ -5,11 +5,7 @@ mod progress_tab_updater;
 mod ui;
 mod util;
 
-use std::{
-    path::PathBuf,
-    sync::Arc,
-    time::{Duration, Instant},
-};
+use std::{path::PathBuf, sync::Arc, time::Instant};
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{
@@ -37,7 +33,7 @@ pub struct ActionTargetStateScrollEntry {
     pub complete_type: CompleteKind,
     pub success: bool,
     pub label: String,
-    pub duration: Duration,
+    pub when: Instant,
     pub bazel_run_id: usize,
 }
 pub async fn maybe_auto_test_mode<

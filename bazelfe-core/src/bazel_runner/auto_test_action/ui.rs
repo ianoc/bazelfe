@@ -188,7 +188,10 @@ where
                 .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
                 Span::styled(
-                    format!("{:<10}", format_duration(elapsed).to_string()),
+                    format!(
+                        "{:<10}",
+                        format!("{} ago", format_duration(elapsed).to_string())
+                    ),
                     time_style,
                 ),
                 Span::raw(pb.to_string_lossy()),
@@ -208,10 +211,14 @@ fn draw_text<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
+    use humantime::format_duration;
+
     let action_style = Style::default().fg(Color::Blue);
     let target_style = Style::default().fg(Color::Yellow);
     let test_style = Style::default().fg(Color::Magenta);
+    let time_style = Style::default().fg(Color::Blue);
 
+    let now_time = Instant::now();
     let success_span = Span::styled(
         format!("{:<11}", "SUCCESS"),
         Style::default().fg(Color::Green),
@@ -239,11 +246,21 @@ where
             } else {
                 &failed_span
             };
+            let mut elapsed = now_time.duration_since(*&action_entry.when);
+            elapsed = elapsed
+                .checked_sub(Duration::from_nanos(elapsed.subsec_nanos() as u64))
+                .unwrap_or(elapsed);
             let content = vec![Spans::from(vec![
+                Span::styled(
+                    format!(
+                        "{:<10}",
+                        format!("{} ago", format_duration(elapsed).to_string())
+                    ),
+                    time_style,
+                ),
                 Span::styled(format!("{:<9}", lvl_str), s),
                 mid_span.clone(),
                 Span::raw(action_entry.label.clone()),
-                Span::raw(format!(" in {:?}", action_entry.duration)),
             ])];
             ListItem::new(content)
         })

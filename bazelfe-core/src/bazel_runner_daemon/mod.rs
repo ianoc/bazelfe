@@ -134,13 +134,13 @@ pub mod daemon_service {
     #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
     pub struct FileStatus(pub PathBuf, pub u128);
 
-    #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
     pub enum TargetsFromFilesResponse {
         Targets(Vec<Targets>),
         InQuery,
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]
     pub enum Targets {
         Test(TestTarget),
         Build(BuildTarget),

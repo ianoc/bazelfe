@@ -128,6 +128,7 @@ where
 
     let text: Vec<Spans> = if let Some(of) = selected_data.output_files.first() {
         let mut buffer = String::new();
+        eprintln!("{:#?}", of);
         match of {
             bazelfe_protos::build_event_stream::file::File::Uri(path) => {
                 if let Ok(f) = std::fs::File::open(path) {

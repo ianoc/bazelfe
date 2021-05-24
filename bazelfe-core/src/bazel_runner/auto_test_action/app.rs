@@ -5,11 +5,22 @@ use std::{
 };
 
 use super::util::{StatefulList, TabsState};
+use bazelfe_protos::*;
+
+#[derive(Debug, PartialEq)]
+pub struct FailureState {
+    pub output_files: Vec<build_event_stream::file::File>,
+    pub target_kind: String,
+    pub bazel_run_id: usize,
+    pub label: String,
+    pub when: Instant,
+}
 
 pub struct App<'a> {
     pub title: &'a str,
     pub should_quit: bool,
     pub tabs: TabsState<'a>,
+    pub error_tab_position: isize,
     pub show_chart: bool,
     pub progress: f64,
     pub action_logs: StatefulList<super::ActionTargetStateScrollEntry>,
@@ -24,6 +35,7 @@ pub struct App<'a> {
     pub scroll_h: u16,
     pub scroll_w: u16,
     pub action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
+    pub failure_state: HashMap<String, FailureState>,
 }
 
 impl<'a> App<'a> {
@@ -39,6 +51,7 @@ impl<'a> App<'a> {
             title,
             should_quit: false,
             tabs: TabsState::new(vec!["Build Activity", "Bazel logs"]),
+            error_tab_position: 0,
             show_chart: true,
             progress: 0.0,
             action_logs: StatefulList::new(),
@@ -54,6 +67,7 @@ impl<'a> App<'a> {
             progress_logs: Vec::default(),
             scroll_h: 0,
             scroll_w: 0,
+            failure_state: HashMap::default(),
         }
     }
 
@@ -78,11 +92,25 @@ impl<'a> App<'a> {
     }
 
     pub fn on_right(&mut self) {
-        self.tabs.next();
+        self.error_tab_position += 1;
     }
 
     pub fn on_left(&mut self) {
+        self.error_tab_position -= 1;
+    }
+
+    pub fn on_tab(&mut self) {
+        self.scroll_h = 0;
+        self.scroll_w = 0;
+        self.tabs.next();
+        self.error_tab_position = 0;
+    }
+
+    pub fn on_back_tab(&mut self) {
+        self.scroll_h = 0;
+        self.scroll_w = 0;
         self.tabs.previous();
+        self.error_tab_position = 0;
     }
 
     pub fn scroll(&mut self) -> (u16, u16) {
@@ -117,6 +145,19 @@ impl<'a> App<'a> {
         }
 
         while let Ok(r) = self.action_event_rx.try_recv() {
+            if r.success {
+                let _ = self.failure_state.remove(&r.label);
+            } else {
+                let f = FailureState {
+                    output_files: r.files.clone(),
+                    target_kind: "Dunno.".to_string(),
+                    bazel_run_id: r.bazel_run_id,
+                    when: r.when.clone(),
+                    label: r.label.clone(),
+                };
+                self.failure_state.insert(r.label.clone(), f);
+            }
+
             let mut prev_idx = None;
             for (idx, item) in self.action_logs.items.iter().enumerate() {
                 // starts at the left which is the newest

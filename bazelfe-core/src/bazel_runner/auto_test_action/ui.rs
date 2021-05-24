@@ -37,11 +37,20 @@ where
     B: Backend,
 {
     let chunks = Layout::default()
-        .constraints([Constraint::Min(7), Constraint::Min(7), Constraint::Min(7)].as_ref())
+        .constraints(
+            [
+                Constraint::Length(7),
+                Constraint::Min(15),
+                Constraint::Min(7),
+                Constraint::Min(7),
+            ]
+            .as_ref(),
+        )
         .split(area);
     draw_system_status(f, app, chunks[0]);
-    draw_recent_file_changes(f, app, chunks[1]);
-    draw_text(f, app, chunks[2]);
+    draw_current_failure(f, app, chunks[1]);
+    draw_recent_file_changes(f, app, chunks[2]);
+    draw_text(f, app, chunks[3]);
 }
 
 fn draw_system_status<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -81,6 +90,72 @@ where
         .wrap(Wrap { trim: false });
 
     f.render_widget(system_status, area);
+}
+
+fn draw_current_failure<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
+where
+    B: Backend,
+{
+    let mut entries: Vec<&super::app::FailureState> = app.failure_state.values().collect();
+    entries.sort_by_key(|e| e.when);
+
+    let titles = entries
+        .iter()
+        .map(|t| Spans::from(Span::styled(&t.label, Style::default().fg(Color::Green))))
+        .collect();
+
+    while app.error_tab_position < 0 {
+        app.error_tab_position += entries.len() as isize;
+    }
+
+    app.error_tab_position = app.error_tab_position % entries.len() as isize;
+
+    let chunks = Layout::default()
+        .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
+        .split(f.size());
+
+    let tabs = Tabs::new(titles)
+        .block(Block::default().borders(Borders::ALL).title(app.title))
+        .highlight_style(Style::default().fg(Color::Yellow))
+        .select(app.error_tab_position as usize);
+    f.render_widget(tabs, chunks[0]);
+
+    let selected_data = entries[app.error_tab_position as usize];
+
+    let text: Vec<Spans> = if let Some(of) = selected_data.output_files.first() {
+        let mut buffer = String::new();
+        match of {
+            bazelfe_protos::build_event_stream::file::File::Uri(path) => {
+                if let Ok(f) = std::fs::File::open(path) {
+                    let mut buf_reader = std::io::BufReader::new(f);
+                    use std::io::Read;
+                    if let Ok(_) = buf_reader.read_to_string(&mut buffer) {}
+                }
+            }
+            bazelfe_protos::build_event_stream::file::File::Contents(content) => {
+                buffer = String::from_utf8_lossy(content).to_string();
+            }
+        }
+        buffer
+            .lines()
+            .map(|e| Spans(CtrlChars::parse(e.to_string()).into_text()))
+            .collect()
+    } else {
+        Vec::default()
+    };
+
+    let (y, x) = app.scroll();
+
+    let y = text.len() as isize - y as isize - area.height as isize;
+    let y = if y < 0 { 0 } else { y as u16 };
+    let paragraph = Paragraph::new(Text { lines: text })
+        .block(Block::default().title("Bazel logs").borders(Borders::ALL))
+        .style(Style::default().fg(Color::White).bg(Color::Black))
+        .alignment(Alignment::Left)
+        .scroll((y, x))
+        .wrap(Wrap { trim: false });
+
+    f.render_widget(paragraph, chunks[1]);
 }
 
 fn draw_recent_file_changes<B>(f: &mut Frame<B>, app: &mut App, area: Rect)

@@ -42,6 +42,20 @@ pub struct ActionSuccessInfo {
     pub stderr: Option<build_event_stream::file::File>,
     pub target_kind: Option<String>,
 }
+impl ActionSuccessInfo {
+    pub fn files(&self) -> Vec<build_event_stream::file::File> {
+        let mut r = Vec::default();
+
+        if let Some(s) = self.stdout.as_ref() {
+            r.push(s.clone());
+        }
+
+        if let Some(s) = self.stderr.as_ref() {
+            r.push(s.clone());
+        }
+        r
+    }
+}
 
 #[derive(Clone, PartialEq, Debug)]
 pub struct TargetCompleteInfo {

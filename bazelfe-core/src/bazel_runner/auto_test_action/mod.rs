@@ -41,6 +41,7 @@ pub enum CompleteKind {
     Target,
     Test,
 }
+use bazelfe_protos::*;
 
 pub struct ActionTargetStateScrollEntry {
     pub complete_type: CompleteKind,
@@ -48,7 +49,9 @@ pub struct ActionTargetStateScrollEntry {
     pub label: String,
     pub when: Instant,
     pub bazel_run_id: usize,
+    pub files: Vec<build_event_stream::file::File>,
 }
+
 pub async fn maybe_auto_test_mode<
     T: buildozer_driver::Buildozer,
     U: crate::hydrated_stream_processors::process_bazel_failures::CommandLineRunner,

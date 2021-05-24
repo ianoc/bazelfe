@@ -140,6 +140,8 @@ where
                 buffer = String::from_utf8_lossy(content).to_string();
             }
         }
+
+        eprintln!("Extracted logs : {:#?}", buffer);
         buffer
             .lines()
             .map(|e| Spans(CtrlChars::parse(e.to_string()).into_text()))

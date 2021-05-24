@@ -98,7 +98,6 @@ where
 {
     let mut entries: Vec<&super::app::FailureState> = app.failure_state.values().collect();
 
-    eprintln!("{:#?}", app.failure_state);
     if entries.len() == 0 {
         return;
     }
@@ -117,10 +116,10 @@ where
 
     let chunks = Layout::default()
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
-        .split(f.size());
+        .split(area);
 
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL).title(app.title))
+        .block(Block::default().borders(Borders::ALL).title("Output logs"))
         .highlight_style(Style::default().fg(Color::Yellow))
         .select(app.error_tab_position as usize);
     f.render_widget(tabs, chunks[0]);

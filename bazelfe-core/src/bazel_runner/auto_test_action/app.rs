@@ -21,6 +21,8 @@ pub struct App<'a> {
     pub build_status_rx: flume::Receiver<super::BuildStatus>,
     pub build_status: super::BuildStatus,
     pub progress_logs: Vec<String>,
+    pub scroll_h: u16,
+    pub scroll_w: u16,
     pub action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
 }
 
@@ -46,9 +48,12 @@ impl<'a> App<'a> {
             bazel_status_rx,
             bazel_status: super::BazelStatus::Idle,
             build_status_rx,
+
             build_status: super::BuildStatus::ActionsGreen,
             recent_files: HashMap::default(),
             progress_logs: Vec::default(),
+            scroll_h: 0,
+            scroll_w: 0,
         }
     }
 
@@ -60,12 +65,28 @@ impl<'a> App<'a> {
         // self.tasks.next();
     }
 
+    pub fn on_page_down(&mut self) {
+        if self.scroll_h > 20 {
+            self.scroll_h -= 20;
+        } else {
+            self.scroll_h = 0;
+        }
+    }
+
+    pub fn on_page_up(&mut self) {
+        self.scroll_h += 20;
+    }
+
     pub fn on_right(&mut self) {
         self.tabs.next();
     }
 
     pub fn on_left(&mut self) {
         self.tabs.previous();
+    }
+
+    pub fn scroll(&mut self) -> (u16, u16) {
+        (self.scroll_h, self.scroll_w)
     }
 
     pub fn on_key(&mut self, c: char) {

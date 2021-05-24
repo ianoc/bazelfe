@@ -64,6 +64,8 @@ fn main_loop(
                 KeyCode::Tab => app.on_right(),
                 KeyCode::BackTab => app.on_left(),
                 KeyCode::Down => app.on_down(),
+                KeyCode::PageUp => app.on_page_up(),
+                KeyCode::PageDown => app.on_page_down(),
                 _ => {}
             },
             Event::Tick => {

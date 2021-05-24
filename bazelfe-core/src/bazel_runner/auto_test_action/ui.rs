@@ -97,6 +97,9 @@ where
     B: Backend,
 {
     let mut entries: Vec<&super::app::FailureState> = app.failure_state.values().collect();
+    if entries.len() == 0 {
+        return;
+    }
     entries.sort_by_key(|e| e.when);
 
     let titles = entries
@@ -149,7 +152,7 @@ where
     let y = text.len() as isize - y as isize - area.height as isize;
     let y = if y < 0 { 0 } else { y as u16 };
     let paragraph = Paragraph::new(Text { lines: text })
-        .block(Block::default().title("Bazel logs").borders(Borders::ALL))
+        .block(Block::default().borders(Borders::NONE))
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .alignment(Alignment::Left)
         .scroll((y, x))

@@ -131,7 +131,7 @@ where
         eprintln!("{:#?}", of);
         match of {
             bazelfe_protos::build_event_stream::file::File::Uri(path) => {
-                if let Ok(f) = std::fs::File::open(path) {
+                if let Ok(f) = std::fs::File::open(path.replace("file:///", "/")) {
                     let mut buf_reader = std::io::BufReader::new(f);
                     use std::io::Read;
                     if let Ok(_) = buf_reader.read_to_string(&mut buffer) {}

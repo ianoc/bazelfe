@@ -196,11 +196,14 @@ where
         .map(|e| Spans(CtrlChars::parse(e.to_string()).into_text()))
         .collect();
 
+    let (y, x) = app.scroll();
+
+    let y = text.len() - y;
     let paragraph = Paragraph::new(Text { lines: text })
         .block(Block::default().title("Bazel logs").borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .alignment(Alignment::Left)
-        .scroll(app.scroll())
+        .scroll((y, x))
         .wrap(Wrap { trim: false });
 
     f.render_widget(paragraph, area);

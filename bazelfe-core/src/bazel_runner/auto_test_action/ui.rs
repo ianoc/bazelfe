@@ -97,6 +97,8 @@ where
     B: Backend,
 {
     let mut entries: Vec<&super::app::FailureState> = app.failure_state.values().collect();
+
+    eprintln!("{#:?}", app.failure_state);
     if entries.len() == 0 {
         return;
     }

@@ -198,7 +198,7 @@ where
 
     let (y, x) = app.scroll();
 
-    let y = text.len() - y;
+    let y = (text.len() - y) as u16;
     let paragraph = Paragraph::new(Text { lines: text })
         .block(Block::default().title("Bazel logs").borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))

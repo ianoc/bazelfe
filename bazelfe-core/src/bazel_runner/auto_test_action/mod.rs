@@ -131,6 +131,7 @@ pub async fn maybe_auto_test_mode<
 
                 dirty_files.sort_by_key(|e| e.1);
                 dirty_files.reverse();
+
                 'inner_loop: loop {
                     let changed_targets_resp = daemon_cli
                         .targets_from_files(

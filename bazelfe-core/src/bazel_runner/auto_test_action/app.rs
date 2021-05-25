@@ -217,6 +217,7 @@ impl<'a> App<'a> {
                     r.when.clone(),
                     r.label.clone(),
                 );
+                eprintln!("Inserting {:#?}", f);
                 self.failure_state.insert(r.label.clone(), f);
             }
 

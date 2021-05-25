@@ -8,8 +8,7 @@ use std::{
     error::Error,
     io::stdout,
     path::PathBuf,
-    sync::mpsc,
-    thread::{self, JoinHandle},
+    thread::{self},
     time::{Duration, Instant},
 };
 use tui::{backend::CrosstermBackend, Terminal};

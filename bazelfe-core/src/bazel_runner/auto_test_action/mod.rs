@@ -18,7 +18,6 @@ use crate::{
     buildozer_driver,
 };
 
-use prost_types::compiler::code_generator_response::File;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy)]

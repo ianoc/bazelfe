@@ -5,7 +5,7 @@ mod progress_tab_updater;
 mod ui;
 mod util;
 
-use std::{path::PathBuf, sync::Arc, time::Instant};
+use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{
@@ -13,6 +13,7 @@ use crate::{
     buildozer_driver,
 };
 
+use prost_types::compiler::code_generator_response::File;
 use thiserror::Error;
 
 #[derive(Debug, Clone, Copy)]
@@ -86,10 +87,18 @@ pub async fn maybe_auto_test_mode<
             .aes
             .add_event_handler(Arc::new(progress_tab_updater));
 
+        configured_bazel_runner
+            .bazel_command_line
+            .add_action_option_if_unset(
+                crate::bazel_command_line_parser::BazelOption::BooleanOption(
+                    "keep_going".to_string(),
+                    true,
+                ),
+            );
         let mut invalid_since_when: u128 = 0;
         let mut cur_distance = 1;
         let max_distance = 3;
-        let mut dirty_files: Vec<FileStatus> = Vec::default();
+        let mut dirty_files: HashMap<PathBuf, FileStatus> = HashMap::default();
 
         let main_running = command_line_driver::main(
             progress_receiver,
@@ -127,16 +136,16 @@ pub async fn maybe_auto_test_mode<
                 for f in recent_changed_files.iter() {
                     let _ = changed_file_tx.send_async(f.0.clone()).await;
                 }
-                dirty_files.extend(recent_changed_files);
+                for f in recent_changed_files.into_iter() {
+                    dirty_files.insert(f.0.clone(), f);
+                }
 
-                dirty_files.sort_by_key(|e| e.1);
-                dirty_files.reverse();
-
+                let let_to_query: Vec<FileStatus> = dirty_files.values().cloned().collect();
                 'inner_loop: loop {
                     let changed_targets_resp = daemon_cli
                         .targets_from_files(
                             tarpc::context::current(),
-                            dirty_files.clone(),
+                            let_to_query.clone(),
                             cur_distance,
                             bazel_in_query,
                         )

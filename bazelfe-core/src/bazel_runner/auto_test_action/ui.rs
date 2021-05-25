@@ -131,7 +131,7 @@ where
         .split(area);
 
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::Bottom))
+        .block(Block::default().borders(Borders::BOTTOM))
         .highlight_style(Style::default().fg(Color::LightBlue))
         .select(app.error_tab_position as usize);
     f.render_widget(tabs, chunks[0]);

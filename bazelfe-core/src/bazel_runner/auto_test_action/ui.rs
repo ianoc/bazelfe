@@ -15,7 +15,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .constraints(
             [
                 Constraint::Length(3),
-                Constraint::Length(7),
+                Constraint::Length(3),
                 Constraint::Min(0),
             ]
             .as_ref(),
@@ -114,12 +114,15 @@ where
 
     app.error_tab_position = app.error_tab_position % entries.len() as isize;
 
+    let block = Block::default().borders(Borders::ALL).title("Output logs");
+    f.render_widget(block, area);
+    let area = block.inner(area);
+
     let chunks = Layout::default()
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())
         .split(area);
 
     let tabs = Tabs::new(titles)
-        .block(Block::default().borders(Borders::ALL).title("Output logs"))
         .highlight_style(Style::default().fg(Color::Yellow))
         .select(app.error_tab_position as usize);
     f.render_widget(tabs, chunks[0]);
@@ -154,7 +157,6 @@ where
     let y = text.len() as isize - y as isize - area.height as isize;
     let y = if y < 0 { 0 } else { y as u16 };
     let paragraph = Paragraph::new(Text { lines: text })
-        .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .alignment(Alignment::Left)
         .scroll((y, x))

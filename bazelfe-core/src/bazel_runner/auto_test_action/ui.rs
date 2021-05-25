@@ -97,9 +97,9 @@ where
     B: Backend,
 {
     let block = Block::default().borders(Borders::ALL).title("Output logs");
-    let area = block.inner(area);
-
+    let block_inner = block.inner(area);
     f.render_widget(block, area);
+    let area = block_inner;
 
     let mut entries: Vec<&mut super::app::FailureState> = app.failure_state.values_mut().collect();
 

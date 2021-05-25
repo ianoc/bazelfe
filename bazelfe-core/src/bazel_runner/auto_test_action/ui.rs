@@ -128,7 +128,6 @@ where
 
     let text: Vec<Spans> = if let Some(of) = selected_data.stderr.as_mut() {
         let mut buffer = String::new();
-        eprintln!("{:#?}", of);
         match of {
             super::app::OutputFile::CacheOnDisk(f) => {
                 use std::io::Seek;
@@ -142,7 +141,6 @@ where
             }
         }
 
-        eprintln!("Extracted logs : {:#?}", buffer);
         buffer
             .lines()
             .map(|e| Spans(CtrlChars::parse(e.to_string()).into_text()))

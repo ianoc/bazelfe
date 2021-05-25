@@ -49,15 +49,15 @@ where
         .constraints(
             [
                 Constraint::Percentage(70),
-                Constraint::Min(7),
-                Constraint::Min(7),
+                Constraint::Percentage(15),
+                Constraint::Percentage(15),
             ]
             .as_ref(),
         )
         .split(area);
     draw_current_failure(f, app, chunks[0]);
     draw_recent_file_changes(f, app, chunks[1]);
-    draw_text(f, app, chunks[2]);
+    draw_completion_events(f, app, chunks[2]);
 }
 
 fn draw_system_status<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
@@ -66,15 +66,22 @@ where
 {
     let bazel_status_span = match app.bazel_status {
         super::BazelStatus::Idle => Span::styled("Idle", Style::default().bg(Color::LightBlue)),
-        super::BazelStatus::Build => Span::styled("Build", Style::default().bg(Color::LightGreen)),
-        super::BazelStatus::Test => Span::styled("Test", Style::default().bg(Color::LightYellow)),
+        super::BazelStatus::Build => {
+            Span::styled("Building...", Style::default().bg(Color::LightGreen))
+        }
+        super::BazelStatus::Test => {
+            Span::styled("Testing...", Style::default().bg(Color::LightYellow))
+        }
         super::BazelStatus::InQuery => Span::styled(
-            "System querying Dependencies",
+            "Querying bazel to model deps..",
             Style::default().bg(Color::LightMagenta),
         ),
     };
 
     let build_status_span = match app.build_status {
+        super::BuildStatus::Unknown => {
+            Span::styled("Unknown", Style::default().bg(Color::LightCyan))
+        }
         super::BuildStatus::ActionsFailing => {
             Span::styled("Failing", Style::default().bg(Color::LightRed))
         }
@@ -211,7 +218,7 @@ where
     f.render_stateful_widget(logs, area, &mut app.action_logs.state);
 }
 
-fn draw_text<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
+fn draw_completion_events<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {

@@ -478,13 +478,17 @@ impl super::daemon_service::RunnerDaemon for DaemonServerInstance {
         distance: u32,
         was_in_query: bool,
     ) -> super::daemon_service::TargetsFromFilesResponse {
+        self.most_recent_call
+            .fetch_add(1, std::sync::atomic::Ordering::Release);
+
+        let start_time = Instant::now();
         while self
             .target_cache
             .pending_hydrations
             .load(std::sync::atomic::Ordering::Acquire)
             > 0
         {
-            if !was_in_query {
+            if start_time.elapsed() > Duration::from_millis(100) || !was_in_query {
                 return super::daemon_service::TargetsFromFilesResponse::InQuery;
             }
             tokio::time::sleep(Duration::from_millis(5)).await;

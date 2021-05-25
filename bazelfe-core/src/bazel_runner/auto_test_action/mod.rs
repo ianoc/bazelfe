@@ -27,6 +27,7 @@ pub enum BazelStatus {
 pub enum BuildStatus {
     ActionsGreen,
     ActionsFailing,
+    Unknown,
 }
 #[derive(Error, Debug)]
 pub enum AutoTestActionError {
@@ -36,6 +37,7 @@ pub enum AutoTestActionError {
 
 use super::configured_bazel_runner::ConfiguredBazelRunner;
 
+#[derive(Debug)]
 pub enum CompleteKind {
     Action,
     Target,
@@ -43,6 +45,7 @@ pub enum CompleteKind {
 }
 use bazelfe_protos::*;
 
+#[derive(Debug)]
 pub struct ActionTargetStateScrollEntry {
     pub complete_type: CompleteKind,
     pub success: bool,

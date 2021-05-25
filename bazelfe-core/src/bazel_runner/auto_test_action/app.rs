@@ -124,7 +124,7 @@ impl<'a> App<'a> {
             bazel_status: super::BazelStatus::Idle,
             build_status_rx,
 
-            build_status: super::BuildStatus::ActionsGreen,
+            build_status: super::BuildStatus::Unknown,
             recent_files: HashMap::default(),
             progress_logs: Vec::default(),
             scroll_h: 0,
@@ -207,6 +207,7 @@ impl<'a> App<'a> {
         }
 
         while let Ok(r) = self.action_event_rx.try_recv() {
+            // eprintln!("{:#?}", r);
             if r.success {
                 let _ = self.failure_state.remove(&r.label);
             } else {

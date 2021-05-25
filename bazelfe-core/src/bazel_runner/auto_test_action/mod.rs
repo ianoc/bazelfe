@@ -141,6 +141,7 @@ pub async fn maybe_auto_test_mode<
                 let mut visited_targets: HashSet<String> = HashSet::default();
                 dirty_files.extend(recent_changed_files.into_iter());
                 dirty_files.sort_by_key(|e| e.1);
+                dirty_files.reverse();
 
                 'dirty_file_loop: for f in dirty_files.iter() {
                     if visited_files.contains(&f.0) {

@@ -32,7 +32,7 @@ pub fn draw<B: Backend>(f: &mut Frame<B>, app: &mut App) {
         .highlight_style(Style::default().fg(Color::Yellow))
         .select(app.tabs.index);
     f.render_widget(tabs, chunks[0]);
-    draw_system_status(f, app, chunks[0]);
+    draw_system_status(f, app, chunks[1]);
 
     match app.tabs.index {
         0 => draw_first_tab(f, app, chunks[2]),

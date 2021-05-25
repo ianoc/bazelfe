@@ -1,7 +1,7 @@
 version: 2
 updates:
 - package-ecosystem: cargo
-  directory: "/bazelfe-core"
+  directory: "/"
   schedule:
-    interval: daily 
+          interval: "daily"
   open-pull-requests-limit: 99

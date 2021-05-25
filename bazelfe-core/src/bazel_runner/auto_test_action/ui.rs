@@ -46,7 +46,14 @@ where
     B: Backend,
 {
     let chunks = Layout::default()
-        .constraints([Constraint::Min(15), Constraint::Min(7), Constraint::Min(7)].as_ref())
+        .constraints(
+            [
+                Constraint::Percentage(70),
+                Constraint::Min(7),
+                Constraint::Min(7),
+            ]
+            .as_ref(),
+        )
         .split(area);
     draw_current_failure(f, app, chunks[0]);
     draw_recent_file_changes(f, app, chunks[1]);

@@ -217,8 +217,24 @@ impl<'a> App<'a> {
                     r.when.clone(),
                     r.label.clone(),
                 );
-                eprintln!("Inserting {:#?}", f);
-                self.failure_state.insert(r.label.clone(), f);
+                let do_update = if let Some(prev) = self.failure_state.get(&r.label) {
+                    if r.bazel_run_id != prev.bazel_run_id {
+                        true
+                    } else {
+                        if prev.stderr.is_some() && f.stderr.is_none() {
+                            false
+                        } else {
+                            true
+                        }
+                    }
+                } else {
+                    true
+                };
+
+                if do_update {
+                    eprintln!("Inserting {:#?}", f);
+                    self.failure_state.insert(r.label.clone(), f);
+                }
             }
 
             let mut prev_idx = None;

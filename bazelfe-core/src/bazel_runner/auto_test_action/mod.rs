@@ -5,7 +5,12 @@ mod progress_tab_updater;
 mod ui;
 mod util;
 
-use std::{collections::HashMap, path::PathBuf, sync::Arc, time::Instant};
+use std::{
+    collections::{HashMap, HashSet},
+    path::PathBuf,
+    sync::Arc,
+    time::Instant,
+};
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{
@@ -87,18 +92,10 @@ pub async fn maybe_auto_test_mode<
             .aes
             .add_event_handler(Arc::new(progress_tab_updater));
 
-        configured_bazel_runner
-            .bazel_command_line
-            .add_action_option_if_unset(
-                crate::bazel_command_line_parser::BazelOption::BooleanOption(
-                    "keep_going".to_string(),
-                    true,
-                ),
-            );
         let mut invalid_since_when: u128 = 0;
         let mut cur_distance = 1;
         let max_distance = 3;
-        let mut dirty_files: HashMap<PathBuf, FileStatus> = HashMap::default();
+        let mut dirty_files: Vec<FileStatus> = Vec::default();
 
         let main_running = command_line_driver::main(
             progress_receiver,
@@ -136,22 +133,28 @@ pub async fn maybe_auto_test_mode<
                 for f in recent_changed_files.iter() {
                     let _ = changed_file_tx.send_async(f.0.clone()).await;
                 }
-                for f in recent_changed_files.into_iter() {
-                    dirty_files.insert(f.0.clone(), f);
-                }
 
-                let let_to_query: Vec<FileStatus> = dirty_files.values().cloned().collect();
-                'inner_loop: loop {
-                    let changed_targets_resp = daemon_cli
-                        .targets_from_files(
-                            tarpc::context::current(),
-                            let_to_query.clone(),
-                            cur_distance,
-                            bazel_in_query,
-                        )
-                        .await?;
+                let mut visited_files: HashSet<PathBuf> = HashSet::default();
+                let mut visited_targets: HashSet<String> = HashSet::default();
+                dirty_files.extend(recent_changed_files.into_iter());
+                dirty_files.sort_by_key(|e| e.1);
 
-                    let changed_targets = match changed_targets_resp {
+                'dirty_file_loop: for f in dirty_files.iter() {
+                    if visited_files.contains(&f.0) {
+                        continue 'dirty_file_loop;
+                    }
+                    visited_files.insert(f.0.clone());
+                    'inner_loop: loop {
+                        let changed_targets_resp = daemon_cli
+                            .targets_from_files(
+                                tarpc::context::current(),
+                                vec![f.clone()],
+                                cur_distance,
+                                bazel_in_query,
+                            )
+                            .await?;
+
+                        let mut changed_targets = match changed_targets_resp {
                             crate::bazel_runner_daemon::daemon_service::TargetsFromFilesResponse::InQuery => {
                                 let _ = bazel_status_tx.send_async(BazelStatus::InQuery).await;
                                 bazel_in_query = true;
@@ -164,80 +167,88 @@ pub async fn maybe_auto_test_mode<
                             }
                         };
 
-                    if !changed_targets.is_empty() {
-                        configured_bazel_runner.bazel_command_line.action = Some(
-                            crate::bazel_command_line_parser::Action::BuiltIn(BuiltInAction::Build),
-                        );
-                        configured_bazel_runner
-                            .bazel_command_line
-                            .remaining_args
-                            .clear();
+                        changed_targets.retain(|e| !visited_targets.contains(e.target_label()));
+                        changed_targets
+                            .iter()
+                            .for_each(|e| visited_targets.insert(e.target_label().clone()));
 
-                        for t in changed_targets.iter() {
+                        if !changed_targets.is_empty() {
+                            configured_bazel_runner.bazel_command_line.action =
+                                Some(crate::bazel_command_line_parser::Action::BuiltIn(
+                                    BuiltInAction::Build,
+                                ));
                             configured_bazel_runner
                                 .bazel_command_line
                                 .remaining_args
-                                .push(t.target_label().clone());
-                        }
+                                .clear();
 
-                        let _ = bazel_status_tx.send_async(BazelStatus::Build).await;
-                        let result = configured_bazel_runner.run_command_line(false).await?;
-                        let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
-                        if result.final_exit_code != 0 {
-                            build_status_tx
-                                .send_async(BuildStatus::ActionsFailing)
-                                .await?;
-                            continue 'outer_loop;
-                        }
-
-                        // Now try tests
-
-                        configured_bazel_runner
-                            .bazel_command_line
-                            .remaining_args
-                            .clear();
-
-                        for t in changed_targets.iter() {
-                            if t.is_test() {
+                            for t in changed_targets.iter() {
                                 configured_bazel_runner
                                     .bazel_command_line
                                     .remaining_args
                                     .push(t.target_label().clone());
                             }
-                        }
 
-                        if !configured_bazel_runner
-                            .bazel_command_line
-                            .remaining_args
-                            .is_empty()
-                        {
-                            configured_bazel_runner.bazel_command_line.action =
-                                Some(crate::bazel_command_line_parser::Action::BuiltIn(
-                                    BuiltInAction::Test,
-                                ));
-
-                            let _ = bazel_status_tx.send_async(BazelStatus::Test).await;
+                            let _ = bazel_status_tx.send_async(BazelStatus::Build).await;
                             let result = configured_bazel_runner.run_command_line(false).await?;
                             let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
-
                             if result.final_exit_code != 0 {
                                 build_status_tx
                                     .send_async(BuildStatus::ActionsFailing)
                                     .await?;
-
                                 continue 'outer_loop;
                             }
+
+                            // Now try tests
+
+                            configured_bazel_runner
+                                .bazel_command_line
+                                .remaining_args
+                                .clear();
+
+                            for t in changed_targets.iter() {
+                                if t.is_test() {
+                                    configured_bazel_runner
+                                        .bazel_command_line
+                                        .remaining_args
+                                        .push(t.target_label().clone());
+                                }
+                            }
+
+                            if !configured_bazel_runner
+                                .bazel_command_line
+                                .remaining_args
+                                .is_empty()
+                            {
+                                configured_bazel_runner.bazel_command_line.action =
+                                    Some(crate::bazel_command_line_parser::Action::BuiltIn(
+                                        BuiltInAction::Test,
+                                    ));
+
+                                let _ = bazel_status_tx.send_async(BazelStatus::Test).await;
+                                let result =
+                                    configured_bazel_runner.run_command_line(false).await?;
+                                let _ = bazel_status_tx.send_async(BazelStatus::Idle).await;
+
+                                if result.final_exit_code != 0 {
+                                    build_status_tx
+                                        .send_async(BuildStatus::ActionsFailing)
+                                        .await?;
+
+                                    continue 'outer_loop;
+                                }
+                            }
+                            build_status_tx
+                                .send_async(BuildStatus::ActionsGreen)
+                                .await?;
                         }
-                        build_status_tx
-                            .send_async(BuildStatus::ActionsGreen)
-                            .await?;
-                    }
-                    if cur_distance >= max_distance {
-                        cur_distance = 1;
-                        dirty_files.clear();
-                        break 'inner_loop;
-                    } else {
-                        cur_distance += 1;
+                        if cur_distance >= max_distance {
+                            cur_distance = 1;
+                            dirty_files.clear();
+                            break 'inner_loop;
+                        } else {
+                            cur_distance += 1;
+                        }
                     }
                 }
             }

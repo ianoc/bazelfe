@@ -105,7 +105,10 @@ pub async fn maybe_auto_test_mode<
             build_status_rx,
         )?;
         let mut bazel_in_query = false;
+        let mut successful_files: HashSet<FileStatus> = HashSet::default();
         'outer_loop: loop {
+            dirty_files.retain(|e| !successful_files.contains(e));
+            successful_files.clear();
             match main_running.try_recv() {
                 Ok(inner_result) => {
                     if let Err(e) = inner_result {
@@ -245,7 +248,7 @@ pub async fn maybe_auto_test_mode<
                         }
                         if cur_distance >= max_distance {
                             cur_distance = 1;
-                            dirty_files.clear();
+                            successful_files.insert(f.clone());
                             break 'inner_loop;
                         } else {
                             cur_distance += 1;

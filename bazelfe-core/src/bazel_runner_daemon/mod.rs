@@ -131,7 +131,7 @@ pub mod daemon_service {
     use serde::{Deserialize, Serialize};
     use std::path::PathBuf;
 
-    #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize)]
+    #[derive(Debug, Clone, PartialEq, Eq, Deserialize, Serialize, Hash)]
     pub struct FileStatus(pub PathBuf, pub u128);
 
     #[derive(Debug, PartialEq, Eq, Deserialize, Serialize)]

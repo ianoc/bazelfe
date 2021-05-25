@@ -96,7 +96,7 @@ fn draw_current_failure<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
-    let mut entries: Vec<&super::app::FailureState> = app.failure_state.values().collect();
+    let mut entries: Vec<&mut super::app::FailureState> = app.failure_state.values_mut().collect();
 
     if entries.len() == 0 {
         return;
@@ -124,15 +124,15 @@ where
         .select(app.error_tab_position as usize);
     f.render_widget(tabs, chunks[0]);
 
-    let selected_data = entries[app.error_tab_position as usize];
+    let selected_data = &mut entries[app.error_tab_position as usize];
 
-    let text: Vec<Spans> = if let Some(of) = selected_data.stderr.as_ref() {
+    let text: Vec<Spans> = if let Some(of) = selected_data.stderr.as_mut() {
         let mut buffer = String::new();
         eprintln!("{:#?}", of);
         match of {
             super::app::OutputFile::CacheOnDisk(f) => {
-                // use std::io::Seek;
-                // let _ = f.seek(std::io::SeekFrom::Start(0));
+                use std::io::Seek;
+                let _ = f.seek(std::io::SeekFrom::Start(0));
                 let mut buf_reader = std::io::BufReader::new(f);
                 use std::io::Read;
                 if let Ok(_) = buf_reader.read_to_string(&mut buffer) {}

@@ -6,8 +6,6 @@ use std::ffi::OsString;
 use bazelfe_core::config::Config;
 use bazelfe_core::{bazel_command_line_parser::parse_bazel_command_line, bazel_runner};
 
-use std::sync::Arc;
-
 #[derive(Clap, Debug)]
 #[clap(name = "basic", setting = AppSettings::TrailingVarArg)]
 struct Opt {
@@ -153,9 +151,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         config.disable_action_stories_on_success = opt.disable_action_stories_on_success;
     }
 
-    let config = Arc::new(config);
     let bazel_runner = bazel_runner::bazel_runner::BazelRunner {
-        config: Arc::clone(&config),
+        config,
         bazel_command_line: parsed_command_line,
     };
 

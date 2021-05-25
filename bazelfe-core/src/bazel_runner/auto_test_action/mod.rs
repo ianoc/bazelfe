@@ -5,12 +5,7 @@ mod progress_tab_updater;
 mod ui;
 mod util;
 
-use std::{
-    collections::{HashMap, HashSet},
-    path::PathBuf,
-    sync::Arc,
-    time::Instant,
-};
+use std::{collections::HashSet, path::PathBuf, sync::Arc, time::Instant};
 
 use crate::bazel_command_line_parser::BuiltInAction;
 use crate::{

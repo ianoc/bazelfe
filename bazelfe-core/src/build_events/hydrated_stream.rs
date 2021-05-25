@@ -324,7 +324,8 @@ mod tests {
             Some(HydratedInfo::ActionFailed(ActionFailedErrorInfo {
                 target_kind: None,
                 label: String::from("foo_bar_baz"),
-                output_files: vec![]
+                stderr: None,
+                stdout: None
             }))
         );
     }
@@ -356,10 +357,21 @@ mod tests {
             Some(HydratedInfo::ActionFailed(ActionFailedErrorInfo {
                 target_kind: None,
                 label: String::from("foo_bar_baz"),
-                output_files: vec![
-                    build_event_stream::file::File::Uri(String::from("path-to-stdout",)),
-                    build_event_stream::file::File::Uri(String::from("path-to-stderr",))
-                ]
+                stderr: Some(build_event_stream::File {
+                    name: String::from("stderr"),
+                    path_prefix: Vec::default(),
+                    file: Some(build_event_stream::file::File::Uri(String::from(
+                        "path-to-stderr"
+                    )))
+                }),
+
+                stdout: Some(build_event_stream::File {
+                    name: String::from("stdout"),
+                    path_prefix: Vec::default(),
+                    file: Some(build_event_stream::file::File::Uri(String::from(
+                        "path-to-stdout"
+                    )))
+                }),
             }))
         );
     }
@@ -400,10 +412,21 @@ mod tests {
             Some(HydratedInfo::ActionFailed(ActionFailedErrorInfo {
                 target_kind: Some(String::from("my_madeup_rule")),
                 label: String::from("foo_bar_baz"),
-                output_files: vec![
-                    build_event_stream::file::File::Uri(String::from("path-to-stdout",)),
-                    build_event_stream::file::File::Uri(String::from("path-to-stderr",))
-                ]
+                stderr: Some(build_event_stream::File {
+                    name: String::from("stderr"),
+                    path_prefix: Vec::default(),
+                    file: Some(build_event_stream::file::File::Uri(String::from(
+                        "path-to-stderr"
+                    )))
+                }),
+
+                stdout: Some(build_event_stream::File {
+                    name: String::from("stdout"),
+                    path_prefix: Vec::default(),
+                    file: Some(build_event_stream::file::File::Uri(String::from(
+                        "path-to-stdout"
+                    )))
+                }),
             }))
         );
     }
@@ -451,10 +474,21 @@ mod tests {
             Some(HydratedInfo::ActionFailed(ActionFailedErrorInfo {
                 target_kind: None,
                 label: String::from("foo_bar_baz"),
-                output_files: vec![
-                    build_event_stream::file::File::Uri(String::from("path-to-stdout",)),
-                    build_event_stream::file::File::Uri(String::from("path-to-stderr",))
-                ]
+                stderr: Some(build_event_stream::File {
+                    name: String::from("stderr"),
+                    path_prefix: Vec::default(),
+                    file: Some(build_event_stream::file::File::Uri(String::from(
+                        "path-to-stderr"
+                    )))
+                }),
+
+                stdout: Some(build_event_stream::File {
+                    name: String::from("stdout"),
+                    path_prefix: Vec::default(),
+                    file: Some(build_event_stream::file::File::Uri(String::from(
+                        "path-to-stdout"
+                    )))
+                }),
             }))
         );
     }

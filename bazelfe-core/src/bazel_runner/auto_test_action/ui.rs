@@ -96,6 +96,11 @@ fn draw_current_failure<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
+    let block = Block::default().borders(Borders::ALL).title("Output logs");
+    let area = block.inner(area);
+
+    f.render_widget(block, area);
+
     let mut entries: Vec<&mut super::app::FailureState> = app.failure_state.values_mut().collect();
 
     if entries.len() == 0 {
@@ -113,11 +118,6 @@ where
     }
 
     app.error_tab_position = app.error_tab_position % entries.len() as isize;
-
-    let block = Block::default().borders(Borders::ALL).title("Output logs");
-    let area = block.inner(area);
-
-    f.render_widget(block, area);
 
     let chunks = Layout::default()
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())

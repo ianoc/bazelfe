@@ -40,7 +40,7 @@ impl OutputFile {
 pub struct FailureState {
     pub stdout: Option<OutputFile>,
     pub stderr: Option<OutputFile>,
-    pub target_kind: String,
+    pub target_kind: Option<String>,
     pub bazel_run_id: usize,
     pub label: String,
     pub when: Instant,

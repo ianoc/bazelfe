@@ -60,7 +60,7 @@ impl FailureState {
     }
     pub fn new(
         files: Vec<build_event_stream::File>,
-        target_kind: String,
+        target_kind: Option<String>,
         bazel_run_id: usize,
         when: Instant,
         label: String,

@@ -54,6 +54,7 @@ pub struct ActionTargetStateScrollEntry {
     pub success: bool,
     pub label: String,
     pub when: Instant,
+    pub target_kind: Option<String>,
     pub bazel_run_id: usize,
     pub files: Vec<build_event_stream::File>,
 }

@@ -212,7 +212,7 @@ impl<'a> App<'a> {
             } else {
                 let f = FailureState::new(
                     r.files.clone(),
-                    "Dunno.".to_string(),
+                    r.target_kind.clone(),
                     r.bazel_run_id,
                     r.when.clone(),
                     r.label.clone(),
@@ -232,7 +232,6 @@ impl<'a> App<'a> {
                 };
 
                 if do_update {
-                    eprintln!("Inserting {:#?}", f);
                     self.failure_state.insert(r.label.clone(), f);
                 }
             }

@@ -47,6 +47,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                         label: af.label.clone(),
                         when: Instant::now(),
                         files: af.files().clone(),
+                        target_kind: af.target_kind.clone(),
                         bazel_run_id,
                     })
                     .await;
@@ -60,6 +61,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                         label: action_success.label.clone(),
                         when: Instant::now(),
                         files: action_success.files(),
+                        target_kind: action_success.target_kind.clone(),
                         bazel_run_id,
                     })
                     .await;
@@ -72,6 +74,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                         success: tc.success,
                         label: tc.label.clone(),
                         when: Instant::now(),
+                        target_kind: tc.target_kind.clone(),
                         files: tc.output_files.clone(),
                         bazel_run_id,
                     })
@@ -96,6 +99,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                         label: tst.test_summary_event.label.clone(),
                         when: Instant::now(),
                         files: Vec::default(),
+                        target_kind: tst.target_kind.clone(),
                         bazel_run_id,
                     })
                     .await;

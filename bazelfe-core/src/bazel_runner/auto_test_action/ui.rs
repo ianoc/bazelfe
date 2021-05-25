@@ -48,9 +48,9 @@ where
     let chunks = Layout::default()
         .constraints([Constraint::Min(15), Constraint::Min(7), Constraint::Min(7)].as_ref())
         .split(area);
-    draw_current_failure(f, app, chunks[1]);
-    draw_recent_file_changes(f, app, chunks[2]);
-    draw_text(f, app, chunks[3]);
+    draw_current_failure(f, app, chunks[0]);
+    draw_recent_file_changes(f, app, chunks[1]);
+    draw_text(f, app, chunks[2]);
 }
 
 fn draw_system_status<B>(f: &mut Frame<B>, app: &mut App, area: Rect)

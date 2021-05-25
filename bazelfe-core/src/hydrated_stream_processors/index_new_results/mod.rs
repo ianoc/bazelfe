@@ -69,17 +69,19 @@ impl IndexNewResults {
                 };
 
                 for of in tce.output_files.iter() {
-                    if let build_event_stream::file::File::Uri(e) = of {
-                        if e.ends_with(".jar") && e.starts_with("file://") {
-                            let a = e.strip_prefix("file://").unwrap();
-                            let allowed = if let Some(ref external_repo) = external_match {
-                                a.contains(external_repo)
-                            } else {
-                                !a.contains("/external/")
-                            };
-                            if allowed {
-                                let u: PathBuf = a.into();
-                                files.push(u);
+                    if let Some(of) = of.file.as_ref() {
+                        if let build_event_stream::file::File::Uri(e) = of {
+                            if e.ends_with(".jar") && e.starts_with("file://") {
+                                let a = e.strip_prefix("file://").unwrap();
+                                let allowed = if let Some(ref external_repo) = external_match {
+                                    a.contains(external_repo)
+                                } else {
+                                    !a.contains("/external/")
+                                };
+                                if allowed {
+                                    let u: PathBuf = a.into();
+                                    files.push(u);
+                                }
                             }
                         }
                     }

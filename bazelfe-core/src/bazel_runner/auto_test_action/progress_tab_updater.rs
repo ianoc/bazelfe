@@ -46,7 +46,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                         success: false,
                         label: af.label.clone(),
                         when: Instant::now(),
-                        files: af.output_files.clone(),
+                        files: af.files().clone(),
                         bazel_run_id,
                     })
                     .await;

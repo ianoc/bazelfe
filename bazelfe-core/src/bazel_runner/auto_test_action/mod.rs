@@ -49,7 +49,7 @@ pub struct ActionTargetStateScrollEntry {
     pub label: String,
     pub when: Instant,
     pub bazel_run_id: usize,
-    pub files: Vec<build_event_stream::file::File>,
+    pub files: Vec<build_event_stream::File>,
 }
 
 pub async fn maybe_auto_test_mode<

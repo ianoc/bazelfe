@@ -18,10 +18,24 @@ use bazelfe_protos::*;
 #[derive(Clone, PartialEq, Debug)]
 pub struct ActionFailedErrorInfo {
     pub label: String,
-    pub output_files: Vec<build_event_stream::file::File>,
+    pub stdout: Option<build_event_stream::File>,
+    pub stderr: Option<build_event_stream::File>,
     pub target_kind: Option<String>,
 }
+impl ActionFailedErrorInfo {
+    pub fn files(&self) -> Vec<build_event_stream::File> {
+        let mut r = Vec::default();
 
+        if let Some(s) = self.stdout.as_ref() {
+            r.push(s.clone());
+        }
+
+        if let Some(s) = self.stderr.as_ref() {
+            r.push(s.clone());
+        }
+        r
+    }
+}
 #[derive(Clone, PartialEq, Debug)]
 pub struct TestResultInfo {
     pub test_summary_event: TestResultEvt,
@@ -38,12 +52,13 @@ pub struct BazelAbortErrorInfo {
 #[derive(Clone, PartialEq, Debug)]
 pub struct ActionSuccessInfo {
     pub label: String,
-    pub stdout: Option<build_event_stream::file::File>,
-    pub stderr: Option<build_event_stream::file::File>,
+    pub stdout: Option<build_event_stream::File>,
+    pub stderr: Option<build_event_stream::File>,
     pub target_kind: Option<String>,
 }
+
 impl ActionSuccessInfo {
-    pub fn files(&self) -> Vec<build_event_stream::file::File> {
+    pub fn files(&self) -> Vec<build_event_stream::File> {
         let mut r = Vec::default();
 
         if let Some(s) = self.stdout.as_ref() {
@@ -63,7 +78,7 @@ pub struct TargetCompleteInfo {
     pub aspect: Option<String>,
     pub success: bool,
     pub target_kind: Option<String>,
-    pub output_files: Vec<build_event_stream::file::File>,
+    pub output_files: Vec<build_event_stream::File>,
 }
 
 // Broad strokes of the failure occured inside an action (most common)
@@ -80,17 +95,13 @@ pub enum HydratedInfo {
 
 async fn recursive_lookup(
     lut: &HashMap<String, build_event_stream::NamedSetOfFiles>,
-    results: &mut Vec<build_event_stream::file::File>,
+    results: &mut Vec<build_event_stream::File>,
     mut ids: Vec<String>,
 ) -> bool {
     while !ids.is_empty() {
         if let Some(head) = ids.pop() {
             if let Some(r) = lut.get(&head) {
-                results.extend(
-                    r.files
-                        .iter()
-                        .flat_map(|e| e.file.as_ref().map(|e| e.clone())),
-                );
+                results.extend(r.files.iter().cloned());
                 ids.extend(r.file_sets.iter().map(|e| e.id.clone()));
             } else {
                 return false;
@@ -210,11 +221,16 @@ impl HydratedInfo {
                         bazel_event::Evt::ActionCompleted(ace) => {
                             if !ace.success {
                                 let err_info = ActionFailedErrorInfo {
-                                    output_files: ace
-                                        .stdout
-                                        .into_iter()
-                                        .chain(ace.stderr.into_iter())
-                                        .collect(),
+                                    stdout: ace.stdout.map(|stdout| build_event_stream::File {
+                                        file: Some(stdout),
+                                        path_prefix: vec![],
+                                        name: String::from("stdout"),
+                                    }),
+                                    stderr: ace.stderr.map(|stderr| build_event_stream::File {
+                                        file: Some(stderr),
+                                        path_prefix: vec![],
+                                        name: String::from("stderr"),
+                                    }),
                                     target_kind: rule_kind_lookup
                                         .get(&ace.label)
                                         .map(|e| e.clone()),
@@ -225,8 +241,16 @@ impl HydratedInfo {
                                     .unwrap();
                             } else {
                                 let act_info = ActionSuccessInfo {
-                                    stdout: ace.stdout,
-                                    stderr: ace.stderr,
+                                    stdout: ace.stdout.map(|stdout| build_event_stream::File {
+                                        file: Some(stdout),
+                                        path_prefix: vec![],
+                                        name: String::from("stdout"),
+                                    }),
+                                    stderr: ace.stderr.map(|stderr| build_event_stream::File {
+                                        file: Some(stderr),
+                                        path_prefix: vec![],
+                                        name: String::from("stderr"),
+                                    }),
 
                                     target_kind: rule_kind_lookup
                                         .get(&ace.label)

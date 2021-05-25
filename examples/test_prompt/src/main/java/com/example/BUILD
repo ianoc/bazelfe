@@ -3,3 +3,9 @@ java_library(
     srcs = ["Cat.java"],
     visibility = ["//visibility:public"]
 )
+
+java_library(
+    name = "example2",
+    srcs = ["Cat2.java"],
+    visibility = ["//visibility:public"]
+)

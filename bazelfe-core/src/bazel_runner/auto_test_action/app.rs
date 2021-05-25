@@ -7,13 +7,75 @@ use std::{
 use super::util::{StatefulList, TabsState};
 use bazelfe_protos::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug)]
+pub enum OutputFile {
+    Inline(Vec<u8>),
+    CacheOnDisk(std::fs::File),
+}
+
+impl OutputFile {
+    pub fn from_file(
+        file: &build_event_stream::File,
+    ) -> Result<Option<OutputFile>, Box<dyn std::error::Error>> {
+        if let Some(file) = file.file.as_ref() {
+            match file {
+                build_event_stream::file::File::Uri(uri) => {
+                    let local_path = uri.replace("file:///", "/");
+                    let mut src_file = std::fs::File::open(local_path)?;
+                    let mut dest = tempfile::tempfile()?;
+
+                    std::io::copy(&mut src_file, &mut dest)?;
+                    return Ok(Some(OutputFile::CacheOnDisk(dest)));
+                }
+                build_event_stream::file::File::Contents(content) => {
+                    return Ok(Some(OutputFile::Inline(content.clone())));
+                }
+            }
+        }
+
+        Ok(None)
+    }
+}
+#[derive(Debug)]
 pub struct FailureState {
-    pub output_files: Vec<build_event_stream::file::File>,
+    pub stdout: Option<OutputFile>,
+    pub stderr: Option<OutputFile>,
     pub target_kind: String,
     pub bazel_run_id: usize,
     pub label: String,
     pub when: Instant,
+}
+
+impl FailureState {
+    fn uplift_opt(opt: Option<&build_event_stream::File>) -> Option<OutputFile> {
+        if let Some(f) = opt {
+            if let Ok(f) = OutputFile::from_file(f) {
+                f
+            } else {
+                None
+            }
+        } else {
+            None
+        }
+    }
+    pub fn new(
+        files: Vec<build_event_stream::File>,
+        target_kind: String,
+        bazel_run_id: usize,
+        when: Instant,
+        label: String,
+    ) -> Self {
+        let stderr = FailureState::uplift_opt(files.iter().find(|e| e.name == "stderr"));
+        let stdout = FailureState::uplift_opt(files.iter().find(|e| e.name == "stdout"));
+        Self {
+            stdout,
+            stderr,
+            target_kind,
+            bazel_run_id,
+            label,
+            when,
+        }
+    }
 }
 
 pub struct App<'a> {
@@ -148,13 +210,13 @@ impl<'a> App<'a> {
             if r.success {
                 let _ = self.failure_state.remove(&r.label);
             } else {
-                let f = FailureState {
-                    output_files: r.files.clone(),
-                    target_kind: "Dunno.".to_string(),
-                    bazel_run_id: r.bazel_run_id,
-                    when: r.when.clone(),
-                    label: r.label.clone(),
-                };
+                let f = FailureState::new(
+                    r.files.clone(),
+                    "Dunno.".to_string(),
+                    r.bazel_run_id,
+                    r.when.clone(),
+                    r.label.clone(),
+                );
                 self.failure_state.insert(r.label.clone(), f);
             }
 

@@ -126,19 +126,19 @@ where
 
     let selected_data = entries[app.error_tab_position as usize];
 
-    let text: Vec<Spans> = if let Some(of) = selected_data.output_files.first() {
+    let text: Vec<Spans> = if let Some(of) = selected_data.stderr.as_ref() {
         let mut buffer = String::new();
         eprintln!("{:#?}", of);
         match of {
-            bazelfe_protos::build_event_stream::file::File::Uri(path) => {
-                if let Ok(f) = std::fs::File::open(path.replace("file:///", "/")) {
-                    let mut buf_reader = std::io::BufReader::new(f);
-                    use std::io::Read;
-                    if let Ok(_) = buf_reader.read_to_string(&mut buffer) {}
-                }
+            super::app::OutputFile::CacheOnDisk(f) => {
+                // use std::io::Seek;
+                // let _ = f.seek(std::io::SeekFrom::Start(0));
+                let mut buf_reader = std::io::BufReader::new(f);
+                use std::io::Read;
+                if let Ok(_) = buf_reader.read_to_string(&mut buffer) {}
             }
-            bazelfe_protos::build_event_stream::file::File::Contents(content) => {
-                buffer = String::from_utf8_lossy(content).to_string();
+            super::app::OutputFile::Inline(content) => {
+                buffer = String::from_utf8_lossy(&content).to_string()
             }
         }
 
@@ -156,7 +156,7 @@ where
     let y = text.len() as isize - y as isize - area.height as isize;
     let y = if y < 0 { 0 } else { y as u16 };
     let paragraph = Paragraph::new(Text { lines: text })
-        .block(Block::default().borders(Borders::NONE))
+        .block(Block::default().borders(Borders::ALL))
         .style(Style::default().fg(Color::White).bg(Color::Black))
         .alignment(Alignment::Left)
         .scroll((y, x))

@@ -115,8 +115,9 @@ where
     app.error_tab_position = app.error_tab_position % entries.len() as isize;
 
     let block = Block::default().borders(Borders::ALL).title("Output logs");
-    f.render_widget(block, area);
     let area = block.inner(area);
+
+    f.render_widget(block, area);
 
     let chunks = Layout::default()
         .constraints([Constraint::Length(3), Constraint::Min(0)].as_ref())

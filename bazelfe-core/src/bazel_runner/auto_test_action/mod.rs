@@ -170,7 +170,7 @@ pub async fn maybe_auto_test_mode<
                         changed_targets.retain(|e| !visited_targets.contains(e.target_label()));
                         changed_targets
                             .iter()
-                            .for_each(|e| visited_targets.insert(e.target_label().clone()));
+                            .for_each(|e| {visited_targets.insert(e.target_label().clone();}));
 
                         if !changed_targets.is_empty() {
                             configured_bazel_runner.bazel_command_line.action =

@@ -1,3 +1,5 @@
+use crate::bazel_runner_daemon::daemon_service::FileStatus;
+
 use super::{app::App, ui};
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event as CEvent, KeyCode, KeyEvent},
@@ -20,7 +22,7 @@ enum Event<I> {
 
 fn main_loop(
     progress_receiver: flume::Receiver<String>,
-    changed_file_rx: flume::Receiver<PathBuf>,
+    changed_file_rx: flume::Receiver<Vec<(FileStatus, Instant)>>,
     rx: flume::Receiver<Event<KeyEvent>>,
     action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
     bazel_status_rx: flume::Receiver<super::BazelStatus>,
@@ -78,7 +80,7 @@ fn main_loop(
 }
 pub fn main(
     progress_receiver: flume::Receiver<String>,
-    changed_file_rx: flume::Receiver<PathBuf>,
+    changed_file_rx: flume::Receiver<Vec<(FileStatus, Instant)>>,
     action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
     bazel_status_rx: flume::Receiver<super::BazelStatus>,
     build_status_rx: flume::Receiver<super::BuildStatus>,

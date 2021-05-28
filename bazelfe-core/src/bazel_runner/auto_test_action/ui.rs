@@ -56,7 +56,7 @@ where
         )
         .split(area);
     draw_current_failure(f, app, chunks[0]);
-    draw_recent_file_changes(f, app, chunks[1]);
+    dirty_files_being_tracked(f, app, chunks[1]);
     draw_completion_events(f, app, chunks[2]);
 }
 
@@ -181,7 +181,7 @@ where
     f.render_widget(paragraph, chunks[1]);
 }
 
-fn draw_recent_file_changes<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
+fn dirty_files_being_tracked<B>(f: &mut Frame<B>, app: &mut App, area: Rect)
 where
     B: Backend,
 {
@@ -190,7 +190,7 @@ where
     let time_style = Style::default().fg(Color::Blue);
     let now_time = Instant::now();
     let logs: Vec<ListItem> = app
-        .recent_files
+        .dirty_files
         .iter()
         .map(|(pb, when)| {
             let mut elapsed = now_time.duration_since(*when);
@@ -213,7 +213,7 @@ where
     let logs = List::new(logs).block(
         Block::default()
             .borders(Borders::ALL)
-            .title("Recently changed files"),
+            .title("Changed/untested files being tracked"),
     );
     f.render_stateful_widget(logs, area, &mut app.action_logs.state);
 }

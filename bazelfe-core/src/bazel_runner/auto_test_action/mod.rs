@@ -79,7 +79,7 @@ pub async fn maybe_auto_test_mode<
         let (bazel_status_tx, bazel_status_rx) = flume::unbounded::<BazelStatus>();
         let (build_status_tx, build_status_rx) = flume::unbounded::<BuildStatus>();
         let (progress_pump_sender, progress_receiver) = flume::unbounded::<String>();
-        let (changed_file_tx, changed_file_rx) = flume::unbounded::<PathBuf>();
+        let (changed_file_tx, changed_file_rx) = flume::unbounded::<Vec<(FileStatus, Instant)>>();
         let (action_event_tx, action_event_rx) = flume::unbounded::<ActionTargetStateScrollEntry>();
 
         let progress_tab_updater =
@@ -93,7 +93,7 @@ pub async fn maybe_auto_test_mode<
         let mut invalid_since_when: u128 = 0;
         let mut cur_distance = 1;
         let max_distance = 3;
-        let mut dirty_files: Vec<FileStatus> = Vec::default();
+        let mut dirty_files: Vec<(FileStatus, Instant)> = Vec::default();
 
         let main_running = command_line_driver::main(
             progress_receiver,
@@ -105,7 +105,8 @@ pub async fn maybe_auto_test_mode<
         let mut bazel_in_query = false;
         let mut successful_files: HashSet<FileStatus> = HashSet::default();
         'outer_loop: loop {
-            dirty_files.retain(|e| !successful_files.contains(e));
+            dirty_files.retain(|(e, _)| !successful_files.contains(e));
+            let _ = changed_file_tx.send_async(dirty_files.clone()).await;
             successful_files.clear();
             match main_running.try_recv() {
                 Ok(inner_result) => {
@@ -131,17 +132,17 @@ pub async fn maybe_auto_test_mode<
                     .request_instant(tarpc::context::current())
                     .await?;
 
-                for f in recent_changed_files.iter() {
-                    let _ = changed_file_tx.send_async(f.0.clone()).await;
-                }
-
                 let mut visited_files: HashSet<PathBuf> = HashSet::default();
                 let mut visited_targets: HashSet<String> = HashSet::default();
-                dirty_files.extend(recent_changed_files.into_iter());
-                dirty_files.sort_by_key(|e| e.1);
+
+                let now = Instant::now();
+                dirty_files.extend(recent_changed_files.into_iter().map(|e| (e, now)));
+                dirty_files.sort_by_key(|(e, _)| e.1);
                 dirty_files.reverse();
 
-                'dirty_file_loop: for f in dirty_files.iter() {
+                let _ = changed_file_tx.send_async(dirty_files.clone()).await;
+
+                'dirty_file_loop: for (f, _) in dirty_files.iter() {
                     if visited_files.contains(&f.0) {
                         continue 'dirty_file_loop;
                     }

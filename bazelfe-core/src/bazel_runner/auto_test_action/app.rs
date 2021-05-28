@@ -4,6 +4,8 @@ use std::{
     time::{Duration, Instant},
 };
 
+use crate::bazel_runner_daemon::daemon_service::FileStatus;
+
 use super::util::{StatefulList, TabsState};
 use bazelfe_protos::*;
 
@@ -87,8 +89,8 @@ pub struct App<'a> {
     pub progress: f64,
     pub action_logs: StatefulList<super::ActionTargetStateScrollEntry>,
     pub progress_receiver: flume::Receiver<String>,
-    pub file_change_receiver: flume::Receiver<PathBuf>,
-    pub recent_files: HashMap<PathBuf, Instant>,
+    pub file_change_receiver: flume::Receiver<Vec<(FileStatus, Instant)>>,
+    pub dirty_files: HashMap<PathBuf, Instant>,
     pub bazel_status_rx: flume::Receiver<super::BazelStatus>,
     pub bazel_status: super::BazelStatus,
     pub build_status_rx: flume::Receiver<super::BuildStatus>,
@@ -104,7 +106,7 @@ impl<'a> App<'a> {
     pub fn new(
         title: &'a str,
         progress_receiver: flume::Receiver<String>,
-        file_change_receiver: flume::Receiver<PathBuf>,
+        file_change_receiver: flume::Receiver<Vec<(FileStatus, Instant)>>,
         action_event_rx: flume::Receiver<super::ActionTargetStateScrollEntry>,
         bazel_status_rx: flume::Receiver<super::BazelStatus>,
         build_status_rx: flume::Receiver<super::BuildStatus>,
@@ -125,7 +127,7 @@ impl<'a> App<'a> {
             build_status_rx,
 
             build_status: super::BuildStatus::Unknown,
-            recent_files: HashMap::default(),
+            dirty_files: HashMap::default(),
             progress_logs: Vec::default(),
             scroll_h: 0,
             scroll_w: 0,
@@ -263,20 +265,19 @@ impl<'a> App<'a> {
             }
         }
 
-        let now_time = Instant::now();
         while let Ok(r) = self.file_change_receiver.try_recv() {
-            self.recent_files.insert(r, now_time);
+            self.dirty_files.clear();
+            for (k, v) in r {
+                let entry = self.dirty_files.entry(k.0);
+                entry
+                    .and_modify(|prev| {
+                        if *prev < v {
+                            *prev = v;
+                        }
+                    })
+                    .or_insert(v);
+            }
         }
-
-        // 5 minutes
-        let len = self.recent_files.len();
-        let max_time = if len > 10 {
-            Duration::from_secs(90)
-        } else {
-            Duration::from_secs(300)
-        };
-        self.recent_files
-            .retain(|_, i| now_time.duration_since(*i) < max_time);
 
         while let Ok(r) = self.progress_receiver.try_recv() {
             r.lines()

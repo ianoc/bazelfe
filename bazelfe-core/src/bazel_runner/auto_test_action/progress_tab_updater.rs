@@ -91,6 +91,26 @@ impl BazelEventHandler for ProgressTabUpdater {
                     crate::build_events::build_event_server::bazel_event::TestStatus::FailedToBuild => false,
                     crate::build_events::build_event_server::bazel_event::TestStatus::ToolHaltedBeforeTesting => false,
                 };
+                let failed_files = tst
+                    .test_summary_event
+                    .failed_files
+                    .iter()
+                    .filter_map(|e| match e {
+                        bazelfe_protos::build_event_stream::file::File::Uri(u) => {
+                            if u.ends_with(".log") {
+                                Some(e)
+                            } else {
+                                None
+                            }
+                        }
+                        bazelfe_protos::build_event_stream::file::File::Contents(_) => Some(e),
+                    })
+                    .map(|f| bazelfe_protos::build_event_stream::File {
+                        file: Some(f.clone()),
+                        path_prefix: Vec::default(),
+                        name: "stderr".to_string(),
+                    })
+                    .collect();
                 let _ = self
                     .action_event_tx
                     .send_async(super::ActionTargetStateScrollEntry {
@@ -98,7 +118,7 @@ impl BazelEventHandler for ProgressTabUpdater {
                         success: is_success,
                         label: tst.test_summary_event.label.clone(),
                         when: Instant::now(),
-                        files: Vec::default(),
+                        files: failed_files,
                         target_kind: tst.target_kind.clone(),
                         bazel_run_id,
                     })
